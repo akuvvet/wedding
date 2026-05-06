@@ -6,7 +6,7 @@ requireLogin();
 
 $salonCapacity = SALON_CAPACITY;
 $pdo = getPdo();
-$guests = $pdo->query('SELECT id,name,phone,email,status,created_at FROM guests ORDER BY id DESC')->fetchAll();
+$guests = $pdo->query('SELECT id,name,phone,email,status FROM guests ORDER BY name ASC, id ASC')->fetchAll();
 $countsRaw = $pdo->query('SELECT status, COUNT(*) AS total FROM guests GROUP BY status')->fetchAll();
 $counts = [1 => 0, 2 => 0, 3 => 0];
 foreach ($countsRaw as $row) {
@@ -37,24 +37,37 @@ $occupancyRate = $salonCapacity > 0 ? min(100, ($counts[1] / $salonCapacity) * 1
     </section>
 
     <section class="bg-white rounded-2xl overflow-hidden border">
-      <div class="p-4 border-b"><h1 class="text-lg font-semibold">Davetli Listesi</h1></div>
+      <div class="p-4 border-b flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 class="text-lg font-semibold">Davetli Listesi</h1>
+        <div class="table-search ml-auto w-full sm:w-auto">
+          <input type="search" id="tableSearch" class="table-search-input" placeholder="Tabloda ara..." autocomplete="off" spellcheck="false">
+          <button type="button" id="tableSearchClear" class="table-search-clear" aria-label="Aramayi temizle" title="Temizle">
+            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-width="2" fill="none" d="m3 3 8 8M11 3l-8 8"/></svg>
+          </button>
+        </div>
+      </div>
       <div id="tableWrap" class="overflow-x-auto">
         <table class="min-w-full text-sm">
-          <thead class="bg-slate-50"><tr><th class="px-4 py-3 text-left">ID</th><th class="px-4 py-3 text-left">Ad Soyad</th><th class="px-4 py-3 text-left">Telefon</th><th class="px-4 py-3 text-left">Email</th><th class="px-4 py-3 text-left">Status</th><th class="px-4 py-3 text-left">Tarih</th></tr></thead>
+          <thead class="bg-slate-50"><tr><th class="px-4 py-3 text-left">ID</th><th class="px-4 py-3 text-left" title="Varsayilan liste siralamasi A-Z">Ad Soyad <span class="text-slate-400 font-normal" aria-hidden="true">(A-Z)</span></th><th class="px-4 py-3 text-left">Telefon</th><th class="px-4 py-3 text-left">Email</th><th class="px-4 py-3 text-left" title="Duzenle ile degistirilebilir">Status</th><th class="px-4 py-3 text-left whitespace-nowrap">Islem</th></tr></thead>
           <tbody>
             <?php foreach ($guests as $g): ?>
-            <tr class="border-t">
+            <tr class="border-t guest-row" data-id="<?= (int)$g['id'] ?>" data-name="<?= htmlspecialchars($g['name'], ENT_QUOTES, 'UTF-8') ?>" data-phone="<?= htmlspecialchars((string)$g['phone'], ENT_QUOTES, 'UTF-8') ?>" data-email="<?= htmlspecialchars((string)$g['email'], ENT_QUOTES, 'UTF-8') ?>" data-status="<?= (int)$g['status'] ?>">
               <td class="px-4 py-3"><?= (int)$g['id'] ?></td>
-              <td class="px-4 py-3 font-medium"><?= htmlspecialchars($g['name'], ENT_QUOTES, 'UTF-8') ?></td>
-              <td class="px-4 py-3"><?= htmlspecialchars((string)$g['phone'], ENT_QUOTES, 'UTF-8') ?></td>
-              <td class="px-4 py-3"><?= htmlspecialchars((string)$g['email'], ENT_QUOTES, 'UTF-8') ?></td>
-              <td class="px-4 py-3">
+              <td class="px-4 py-3 font-medium guest-cell-name"><?= htmlspecialchars($g['name'], ENT_QUOTES, 'UTF-8') ?></td>
+              <td class="px-4 py-3 guest-cell-phone"><?= htmlspecialchars((string)$g['phone'], ENT_QUOTES, 'UTF-8') ?></td>
+              <td class="px-4 py-3 guest-cell-email"><?= htmlspecialchars((string)$g['email'], ENT_QUOTES, 'UTF-8') ?></td>
+              <td class="px-4 py-3 guest-cell-status align-top">
                 <div class="status-control">
                   <input type="range" min="1" max="3" step="1" value="<?= (int)$g['status'] ?>" class="status-slider status-<?= (int)$g['status'] ?>" data-id="<?= (int)$g['id'] ?>">
                   <span class="status-label text-xs text-slate-600 mt-1 inline-block"><?= (int)$g['status'] ?> - <span class="status-text"><?= (int)$g['status'] === 1 ? 'Mutlaka' : ((int)$g['status'] === 2 ? 'Olabilir' : 'Gerek Yok') ?></span></span>
                 </div>
               </td>
-              <td class="px-4 py-3"><?= htmlspecialchars((string)$g['created_at'], ENT_QUOTES, 'UTF-8') ?></td>
+              <td class="px-4 py-3 guest-cell-actions align-top">
+                <div class="flex flex-wrap gap-1">
+                  <button type="button" class="guest-edit-btn px-2 py-1 rounded text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700">Duzenle</button>
+                  <button type="button" class="guest-delete-btn px-2 py-1 rounded text-xs font-medium bg-rose-600 text-white hover:bg-rose-700">Sil</button>
+                </div>
+              </td>
             </tr>
             <?php endforeach; ?>
           </tbody>
@@ -64,9 +77,134 @@ $occupancyRate = $salonCapacity > 0 ? min(100, ($counts[1] / $salonCapacity) * 1
   </main>
 
   <script>
+  const GUEST_API = { editUrl: 'edit_guest.php', deleteUrl: 'delete_guest.php' };
   const statusTextMap = {1:'Mutlaka',2:'Olabilir',3:'Gerek Yok'};
+  let editingRow = null;
+
   function updateSliderStyle(slider, status){ slider.classList.remove('status-1','status-2','status-3'); slider.classList.add(`status-${status}`); }
   function updateStats(stats){ document.getElementById('count-1').textContent=stats.count_1; document.getElementById('count-2').textContent=stats.count_2; document.getElementById('count-3').textContent=stats.count_3; document.getElementById('total-guests').textContent=stats.total_guests; document.getElementById('occupancy-rate').textContent=`${stats.occupancy_rate}%`; }
+
+  function guestRowNameForSort(tr){
+    const cell = tr.querySelector('.guest-cell-name');
+    if(!cell) return '';
+    const inp = cell.querySelector('input.guest-inline-field');
+    if(inp) return String(inp.value || '').trim();
+    return String(cell.textContent || '').trim();
+  }
+  function sortGuestTableByNameAsc(){
+    if(editingRow) return;
+    const tbody = document.querySelector('#tableWrap tbody');
+    if(!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll('tr.guest-row'));
+    rows.sort((a,b)=> guestRowNameForSort(a).localeCompare(guestRowNameForSort(b), 'tr', { sensitivity: 'base' }));
+    for(const r of rows) tbody.appendChild(r);
+  }
+
+  function statusCellHtml(id, status){
+    return `<div class="status-control">
+      <input type="range" min="1" max="3" step="1" value="${status}" class="status-slider status-${status}" data-id="${id}">
+      <span class="status-label text-xs text-slate-600 mt-1 inline-block">${status} - <span class="status-text">${statusTextMap[status]}</span></span>
+    </div>`;
+  }
+  function actionsCellHtml(){
+    return `<div class="flex flex-wrap gap-1">
+      <button type="button" class="guest-edit-btn px-2 py-1 rounded text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700">Duzenle</button>
+      <button type="button" class="guest-delete-btn px-2 py-1 rounded text-xs font-medium bg-rose-600 text-white hover:bg-rose-700">Sil</button>
+    </div>`;
+  }
+
+  function cancelInlineEdit(tr){
+    if(!tr || !tr._inlineBackup) return;
+    const b = tr._inlineBackup;
+    tr.querySelector('.guest-cell-name').innerHTML = b.name;
+    tr.querySelector('.guest-cell-phone').innerHTML = b.phone;
+    tr.querySelector('.guest-cell-email').innerHTML = b.email;
+    tr.querySelector('.guest-cell-status').innerHTML = b.status;
+    tr.querySelector('.guest-cell-actions').innerHTML = b.actions;
+    delete tr._inlineBackup;
+    if(editingRow === tr) editingRow = null;
+    tr.classList.remove('guest-row-editing');
+  }
+
+  function startInlineEdit(tr){
+    if(tr._inlineBackup) return;
+    if(editingRow && editingRow !== tr) cancelInlineEdit(editingRow);
+    const nameTd = tr.querySelector('.guest-cell-name');
+    const phoneTd = tr.querySelector('.guest-cell-phone');
+    const emailTd = tr.querySelector('.guest-cell-email');
+    const statusTd = tr.querySelector('.guest-cell-status');
+    const actionsTd = tr.querySelector('.guest-cell-actions');
+    tr._inlineBackup = { name: nameTd.innerHTML, phone: phoneTd.innerHTML, email: emailTd.innerHTML, status: statusTd.innerHTML, actions: actionsTd.innerHTML };
+    editingRow = tr;
+    tr.classList.add('guest-row-editing');
+
+    const inpName = document.createElement('input');
+    inpName.type = 'text';
+    inpName.required = true;
+    inpName.className = 'guest-inline-field w-full min-w-[10rem] rounded border border-indigo-200 px-2 py-1 text-sm font-medium';
+    inpName.value = tr.dataset.name || '';
+    nameTd.replaceChildren(inpName);
+
+    const inpPhone = document.createElement('input');
+    inpPhone.type = 'text';
+    inpPhone.className = 'guest-inline-field w-full min-w-[7rem] rounded border border-indigo-200 px-2 py-1 text-sm';
+    inpPhone.value = tr.dataset.phone || '';
+    phoneTd.replaceChildren(inpPhone);
+
+    const inpEmail = document.createElement('input');
+    inpEmail.type = 'email';
+    inpEmail.className = 'guest-inline-field w-full min-w-[10rem] rounded border border-indigo-200 px-2 py-1 text-sm';
+    inpEmail.value = tr.dataset.email || '';
+    emailTd.replaceChildren(inpEmail);
+
+    const sel = document.createElement('select');
+    sel.className = 'guest-inline-status w-full max-w-[12rem] rounded border border-indigo-200 px-2 py-1 text-sm';
+    [[1,'1 - Mutlaka'],[2,'2 - Olabilir'],[3,'3 - Gerek Yok']].forEach(([v,t])=>{ const o=document.createElement('option'); o.value=v; o.textContent=t; sel.appendChild(o); });
+    sel.value = String(tr.dataset.status || '2');
+    statusTd.replaceChildren(sel);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'flex flex-wrap gap-1';
+    const btnSave = document.createElement('button');
+    btnSave.type = 'button';
+    btnSave.className = 'guest-inline-save px-2 py-1 rounded text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700';
+    btnSave.textContent = 'Kaydet';
+    const btnCancel = document.createElement('button');
+    btnCancel.type = 'button';
+    btnCancel.className = 'guest-inline-cancel px-2 py-1 rounded text-xs font-medium border border-slate-300 bg-white hover:bg-slate-50';
+    btnCancel.textContent = 'Iptal';
+    wrap.append(btnSave, btnCancel);
+    actionsTd.replaceChildren(wrap);
+    inpName.focus();
+  }
+
+  async function saveInlineEdit(tr){
+    const id = Number(tr.dataset.id);
+    const name = tr.querySelector('.guest-cell-name input')?.value.trim() || '';
+    const phone = tr.querySelector('.guest-cell-phone input')?.value.trim() || '';
+    const email = tr.querySelector('.guest-cell-email input')?.value.trim() || '';
+    const status = Number(tr.querySelector('.guest-inline-status')?.value || 0);
+    if(!name){ alert('Ad Soyad zorunludur'); return; }
+    const res = await fetch(GUEST_API.editUrl, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, name, phone, email, status }) });
+    const data = await res.json();
+    if(!res.ok || !data.success){ alert(data.message || 'Kayit guncellenemedi'); return; }
+    delete tr._inlineBackup;
+    editingRow = null;
+    tr.classList.remove('guest-row-editing');
+    tr.dataset.name = name;
+    tr.dataset.phone = phone;
+    tr.dataset.email = email;
+    tr.dataset.status = String(status);
+    tr.querySelector('.guest-cell-name').textContent = name;
+    tr.querySelector('.guest-cell-phone').textContent = phone;
+    tr.querySelector('.guest-cell-email').textContent = email;
+    tr.querySelector('.guest-cell-status').innerHTML = statusCellHtml(id, status);
+    tr.querySelector('.guest-cell-actions').innerHTML = actionsCellHtml();
+    updateStats(data.stats);
+    sortGuestTableByNameAsc();
+    applyTableFilter();
+  }
+
   async function updateGuestStatus(id,status,slider){
     const res = await fetch('update.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status})});
     const data = await res.json();
@@ -74,12 +212,77 @@ $occupancyRate = $salonCapacity > 0 ? min(100, ($counts[1] / $salonCapacity) * 1
     const wrap = slider.closest('.status-control');
     wrap.querySelector('.status-label').firstChild.textContent = `${status} - `;
     wrap.querySelector('.status-text').textContent = statusTextMap[status];
+    const tr = slider.closest('.guest-row');
+    if(tr) tr.dataset.status = String(status);
     updateStats(data.stats);
   }
-  document.querySelectorAll('.status-slider').forEach((slider)=>{
-    slider.addEventListener('input', ()=> updateSliderStyle(slider, slider.value));
-    slider.addEventListener('change', ()=>{ const status = Number(slider.value); const id = Number(slider.dataset.id); updateSliderStyle(slider,status); updateGuestStatus(id,status,slider); });
+
+  const tableWrap = document.getElementById('tableWrap');
+  tableWrap.addEventListener('input', (e)=>{
+    const slider = e.target.closest('.status-slider');
+    if(!slider) return;
+    updateSliderStyle(slider, slider.value);
   });
+  tableWrap.addEventListener('change', (e)=>{
+    const slider = e.target.closest('.status-slider');
+    if(!slider) return;
+    const status = Number(slider.value);
+    const id = Number(slider.dataset.id);
+    updateSliderStyle(slider, status);
+    updateGuestStatus(id, status, slider);
+  });
+
+  tableWrap.addEventListener('click', async (e)=>{
+    if(e.target.closest('.guest-inline-save')){
+      await saveInlineEdit(e.target.closest('.guest-row'));
+      return;
+    }
+    if(e.target.closest('.guest-inline-cancel')){
+      cancelInlineEdit(e.target.closest('.guest-row'));
+      return;
+    }
+    if(e.target.closest('.guest-edit-btn')){
+      startInlineEdit(e.target.closest('.guest-row'));
+      return;
+    }
+    const delBtn = e.target.closest('.guest-delete-btn');
+    if(delBtn){
+      const tr = delBtn.closest('.guest-row');
+      const id = Number(tr.dataset.id);
+      if(!id || !confirm('Bu davetliyi silmek istediginize emin misiniz?')) return;
+      const res = await fetch(GUEST_API.deleteUrl, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id }) });
+      const data = await res.json();
+      if(!res.ok || !data.success){ alert(data.message || 'Silme basarisiz'); return; }
+      if(editingRow === tr) editingRow = null;
+      tr.remove();
+      updateStats(data.stats);
+    }
+  });
+
+  const tableSearch = document.getElementById('tableSearch');
+  const tableSearchClear = document.getElementById('tableSearchClear');
+  const tableRows = () => document.querySelectorAll('#tableWrap tbody tr');
+  function applyTableFilter(){
+    const q = (tableSearch && tableSearch.value || '').trim().toLowerCase();
+    if (tableSearchClear) tableSearchClear.classList.toggle('is-visible', q.length > 0);
+    tableRows().forEach((tr) => {
+      const hay = tr.innerText.toLowerCase().replace(/\s+/g, ' ');
+      tr.style.display = !q || hay.includes(q) ? '' : 'none';
+    });
+  }
+  if (tableSearch) {
+    tableSearch.addEventListener('input', applyTableFilter);
+    tableSearch.addEventListener('search', applyTableFilter);
+  }
+  if (tableSearchClear && tableSearch) {
+    tableSearchClear.addEventListener('click', () => {
+      tableSearch.value = '';
+      tableSearch.focus();
+      applyTableFilter();
+    });
+  }
+  sortGuestTableByNameAsc();
+  applyTableFilter();
   </script>
 </body>
 </html>

@@ -47,6 +47,67 @@
 
 @media (max-width: 768px) {
     #tableWrap table {
-        min-width: 760px;
+        min-width: 1020px;
     }
+}
+
+.table-search {
+    position: relative;
+    width: 100%;
+    max-width: 18rem;
+}
+
+.table-search-input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0.45rem 2.25rem 0.45rem 0.7rem;
+    border: 1px solid #93c5fd;
+    border-radius: 0.4rem;
+    background: #fff;
+    font-size: 0.875rem;
+    line-height: 1.35;
+    outline: none;
+}
+
+.table-search-input:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
+.table-search-input::-webkit-search-cancel-button,
+.table-search-input::-webkit-search-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.table-search-clear {
+    position: absolute;
+    right: 0.35rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 1.65rem;
+    height: 1.65rem;
+    padding: 0;
+    border: none;
+    border-radius: 0.25rem;
+    background: transparent;
+    color: #1e3a8a;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.table-search-clear:hover {
+    background: rgba(30, 58, 138, 0.08);
+    color: #172554;
+}
+
+.table-search-clear.is-visible {
+    display: flex;
+}
+
+tr.guest-row-editing {
+    background-color: #f8fafc;
 }
