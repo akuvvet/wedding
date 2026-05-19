@@ -361,16 +361,39 @@ app.get("/list", requireLogin, async (req, res) => {
     const currentUserId = await resolveCurrentUserId(req);
     const viewer = isViewer(req);
     const admin = isAdmin(req);
-    const [guests] = await pool.query(
-      viewer
-        ? "SELECT id, name, city, status, user_id FROM guests ORDER BY name ASC, id ASC"
-        : "SELECT id, name, phone, email, city, status, user_id FROM guests ORDER BY name ASC, id ASC"
+    const guestSql = viewer
+      ? `SELECT g.id, g.name, g.city, g.status, g.user_id, u.username AS kullanici
+         FROM guests g
+         LEFT JOIN users u ON u.id = g.user_id
+         ORDER BY g.name ASC, g.id ASC`
+      : `SELECT g.id, g.name, g.phone, g.email, g.city, g.status, g.user_id, u.username AS kullanici
+         FROM guests g
+         LEFT JOIN users u ON u.id = g.user_id
+         ORDER BY g.name ASC, g.id ASC`;
+    const [guests] = await pool.query(guestSql);
+    const [filterUsers] = await pool.query(
+      `SELECT u.id, u.username FROM users u
+       WHERE u.id IN (SELECT DISTINCT user_id FROM guests WHERE user_id IS NOT NULL)
+       ORDER BY u.username ASC`
+    );
+    const [filterCities] = await pool.query(
+      `SELECT DISTINCT TRIM(city) AS city FROM guests
+       WHERE city IS NOT NULL AND TRIM(city) <> ''
+       ORDER BY city ASC`
+    );
+    const [unassignedRows] = await pool.query("SELECT 1 FROM guests WHERE user_id IS NULL LIMIT 1");
+    const [emptyCityRows] = await pool.query(
+      "SELECT 1 FROM guests WHERE city IS NULL OR TRIM(city) = '' LIMIT 1"
     );
     const [countRows] = await pool.query("SELECT status, COUNT(*) AS total FROM guests GROUP BY status");
     const stats = countStats(countRows);
     res.render("list", {
       guests,
       stats,
+      filterUsers,
+      filterCities,
+      hasUnassignedGuests: unassignedRows.length > 0,
+      hasEmptyCityGuests: emptyCityRows.length > 0,
       currentUserId: Number(currentUserId || 0),
       isAdmin: admin,
       username: req.session.user.username,

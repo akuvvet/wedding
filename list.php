@@ -9,11 +9,28 @@ $isAdmin = isAdmin();
 $currentUserId = currentUserId();
 $salonCapacity = SALON_CAPACITY;
 $pdo = getPdo();
-$guests = $pdo->query(
-    $readOnly
-        ? 'SELECT id,name,city,status,user_id FROM guests ORDER BY name ASC, id ASC'
-        : 'SELECT id,name,phone,email,city,status,user_id FROM guests ORDER BY name ASC, id ASC'
+$guestSql = $readOnly
+    ? 'SELECT g.id, g.name, g.city, g.status, g.user_id, u.username AS kullanici
+       FROM guests g
+       LEFT JOIN users u ON u.id = g.user_id
+       ORDER BY g.name ASC, g.id ASC'
+    : 'SELECT g.id, g.name, g.phone, g.email, g.city, g.status, g.user_id, u.username AS kullanici
+       FROM guests g
+       LEFT JOIN users u ON u.id = g.user_id
+       ORDER BY g.name ASC, g.id ASC';
+$guests = $pdo->query($guestSql)->fetchAll();
+$filterUsers = $pdo->query(
+    'SELECT u.id, u.username FROM users u
+     WHERE u.id IN (SELECT DISTINCT user_id FROM guests WHERE user_id IS NOT NULL)
+     ORDER BY u.username ASC'
 )->fetchAll();
+$filterCities = $pdo->query(
+    "SELECT DISTINCT TRIM(city) AS city FROM guests
+     WHERE city IS NOT NULL AND TRIM(city) <> ''
+     ORDER BY city ASC"
+)->fetchAll();
+$hasUnassignedGuests = (bool)$pdo->query('SELECT 1 FROM guests WHERE user_id IS NULL LIMIT 1')->fetchColumn();
+$hasEmptyCityGuests = (bool)$pdo->query("SELECT 1 FROM guests WHERE city IS NULL OR TRIM(city) = '' LIMIT 1")->fetchColumn();
 $countsRaw = $pdo->query('SELECT status, COUNT(*) AS total FROM guests GROUP BY status')->fetchAll();
 $counts = [1 => 0, 2 => 0, 3 => 0];
 foreach ($countsRaw as $row) {
@@ -47,16 +64,34 @@ $occupancyRate = $salonCapacity > 0 ? min(100, ($counts[1] / $salonCapacity) * 1
     <section class="bg-white rounded-2xl overflow-hidden border">
       <div class="p-4 border-b flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 class="text-lg font-semibold">Davetli Listesi</h1>
-        <div class="table-search ml-auto w-full sm:w-auto">
-          <input type="search" id="tableSearch" class="table-search-input" placeholder="Tabloda ara..." autocomplete="off" spellcheck="false">
-          <button type="button" id="tableSearchClear" class="table-search-clear" aria-label="Aramayi temizle" title="Temizle">
-            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-width="2" fill="none" d="m3 3 8 8M11 3l-8 8"/></svg>
-          </button>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 ml-auto w-full sm:w-auto">
+          <label class="flex items-center gap-2 text-sm text-slate-600 shrink-0">
+            <span class="whitespace-nowrap font-medium">Kullanici</span>
+            <select id="userFilter" class="table-filter-select rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm min-w-[9rem] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none">
+              <option value="">Tumu</option>
+              <?php if ($hasUnassignedGuests): ?><option value="__none__">—</option><?php endif; ?>
+              <?php foreach ($filterUsers as $fu): ?><option value="<?= (int)$fu['id'] ?>"><?= htmlspecialchars($fu['username'], ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?>
+            </select>
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-600 shrink-0">
+            <span class="whitespace-nowrap font-medium">Sehir</span>
+            <select id="cityFilter" class="table-filter-select rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm min-w-[9rem] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none">
+              <option value="">Tumu</option>
+              <?php if ($hasEmptyCityGuests): ?><option value="__none__">—</option><?php endif; ?>
+              <?php foreach ($filterCities as $fc): ?><option value="<?= htmlspecialchars($fc['city'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($fc['city'], ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?>
+            </select>
+          </label>
+          <div class="table-search w-full sm:w-auto">
+            <input type="search" id="tableSearch" class="table-search-input" placeholder="Tabloda ara..." autocomplete="off" spellcheck="false">
+            <button type="button" id="tableSearchClear" class="table-search-clear" aria-label="Aramayi temizle" title="Temizle">
+              <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-width="2" fill="none" d="m3 3 8 8M11 3l-8 8"/></svg>
+            </button>
+          </div>
         </div>
       </div>
       <div id="tableWrap" class="overflow-x-auto">
         <table class="min-w-full text-sm">
-          <thead class="bg-slate-50"><tr><th class="px-4 py-3 text-left">ID</th><th class="px-4 py-3 text-left" title="Isme gore siralama"><button type="button" class="sort-btn inline-flex items-center gap-1 font-semibold text-left text-slate-800 hover:text-indigo-700" data-sort-key="name" aria-label="Ad Soyad sirala">Ad Soyad <span class="sort-indicator text-slate-400" aria-hidden="true">A-Z</span></button></th><?php if (!$readOnly): ?><th class="px-4 py-3 text-left">Telefon</th><th class="px-4 py-3 text-left">Email</th><?php endif; ?><th class="px-4 py-3 text-left" title="Sehire gore siralama"><button type="button" class="sort-btn inline-flex items-center gap-1 font-semibold text-left text-slate-800 hover:text-indigo-700" data-sort-key="city" aria-label="Sehir sirala">Sehir <span class="sort-indicator text-slate-400" aria-hidden="true"></span></button></th><th class="px-4 py-3 text-left" title="Statusa gore siralama"><button type="button" class="sort-btn inline-flex items-center gap-1 font-semibold text-left text-slate-800 hover:text-indigo-700" data-sort-key="status" aria-label="Status sirala">Status <span class="sort-indicator text-slate-400" aria-hidden="true"></span></button></th><?php if (!$readOnly): ?><th class="px-4 py-3 text-left whitespace-nowrap">Islem</th><?php endif; ?></tr></thead>
+          <thead class="bg-slate-50"><tr><th class="px-4 py-3 text-left">ID</th><th class="px-4 py-3 text-left" title="Isme gore siralama"><button type="button" class="sort-btn inline-flex items-center gap-1 font-semibold text-left text-slate-800 hover:text-indigo-700" data-sort-key="name" aria-label="Ad Soyad sirala">Ad Soyad <span class="sort-indicator text-slate-400" aria-hidden="true">A-Z</span></button></th><?php if (!$readOnly): ?><th class="px-4 py-3 text-left">Telefon</th><th class="px-4 py-3 text-left">Email</th><?php endif; ?><th class="px-4 py-3 text-left" title="Sehire gore siralama"><button type="button" class="sort-btn inline-flex items-center gap-1 font-semibold text-left text-slate-800 hover:text-indigo-700" data-sort-key="city" aria-label="Sehir sirala">Sehir <span class="sort-indicator text-slate-400" aria-hidden="true"></span></button></th><th class="px-4 py-3 text-left" title="Statusa gore siralama"><button type="button" class="sort-btn inline-flex items-center gap-1 font-semibold text-left text-slate-800 hover:text-indigo-700" data-sort-key="status" aria-label="Status sirala">Status <span class="sort-indicator text-slate-400" aria-hidden="true"></span></button></th><th class="px-4 py-3 text-left">Kullanici</th><?php if (!$readOnly): ?><th class="px-4 py-3 text-left whitespace-nowrap">Islem</th><?php endif; ?></tr></thead>
           <tbody>
             <?php foreach ($guests as $g):
               $guestUserId = $g['user_id'] !== null ? (int)$g['user_id'] : null;
@@ -79,6 +114,7 @@ $occupancyRate = $salonCapacity > 0 ? min(100, ($counts[1] / $salonCapacity) * 1
                 </div>
                 <?php endif; ?>
               </td>
+              <td class="px-4 py-3 guest-cell-kullanici text-slate-600 whitespace-nowrap"><?php $kb = (string)($g['kullanici'] ?? ''); echo $kb !== '' ? htmlspecialchars($kb, ENT_QUOTES, 'UTF-8') : '—'; ?></td>
               <?php if (!$readOnly): ?>
               <td class="px-4 py-3 guest-cell-actions align-top">
                 <?php if ($canManage): ?>
@@ -371,13 +407,22 @@ $occupancyRate = $salonCapacity > 0 ? min(100, ($counts[1] / $salonCapacity) * 1
 
   const tableSearch = document.getElementById('tableSearch');
   const tableSearchClear = document.getElementById('tableSearchClear');
-  const tableRows = () => document.querySelectorAll('#tableWrap tbody tr');
+  const userFilter = document.getElementById('userFilter');
+  const cityFilter = document.getElementById('cityFilter');
+  const tableRows = () => document.querySelectorAll('#tableWrap tbody tr.guest-row');
   function applyTableFilter(){
     const q = (tableSearch && tableSearch.value || '').trim().toLowerCase();
+    const userId = userFilter ? userFilter.value : '';
+    const city = cityFilter ? cityFilter.value : '';
     if (tableSearchClear) tableSearchClear.classList.toggle('is-visible', q.length > 0);
     tableRows().forEach((tr) => {
       const hay = tr.innerText.toLowerCase().replace(/\s+/g, ' ');
-      tr.style.display = !q || hay.includes(q) ? '' : 'none';
+      const matchSearch = !q || hay.includes(q);
+      const rowUserId = tr.dataset.userId || '';
+      const matchUser = !userId || (userId === '__none__' ? !rowUserId : rowUserId === userId);
+      const rowCity = tr.dataset.city || '';
+      const matchCity = !city || (city === '__none__' ? !rowCity : rowCity === city);
+      tr.style.display = matchSearch && matchUser && matchCity ? '' : 'none';
     });
   }
   if (tableSearch) {
@@ -390,6 +435,12 @@ $occupancyRate = $salonCapacity > 0 ? min(100, ($counts[1] / $salonCapacity) * 1
       tableSearch.focus();
       applyTableFilter();
     });
+  }
+  if (userFilter) {
+    userFilter.addEventListener('change', applyTableFilter);
+  }
+  if (cityFilter) {
+    cityFilter.addEventListener('change', applyTableFilter);
   }
   document.querySelectorAll('.sort-btn').forEach((btn)=>{
     btn.addEventListener('click', ()=> setSort(btn.dataset.sortKey));

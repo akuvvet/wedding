@@ -8,6 +8,10 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body class="min-h-screen bg-slate-100">
+  <% const filterUsersList = typeof filterUsers !== 'undefined' ? filterUsers : []; %>
+  <% const filterCitiesList = typeof filterCities !== 'undefined' ? filterCities : []; %>
+  <% const hasUnassignedGuestsFlag = typeof hasUnassignedGuests !== 'undefined' ? hasUnassignedGuests : false; %>
+  <% const hasEmptyCityGuestsFlag = typeof hasEmptyCityGuests !== 'undefined' ? hasEmptyCityGuests : false; %>
   <%- include('partials/nav', { username, readOnly }) %>
 
   <main class="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
@@ -22,16 +26,34 @@
     <section class="bg-white rounded-2xl overflow-hidden border">
       <div class="p-4 border-b flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 class="text-lg font-semibold">Davetli Listesi</h1>
-        <div class="table-search ml-auto w-full sm:w-auto">
-          <input type="search" id="tableSearch" class="table-search-input" placeholder="Tabloda ara..." autocomplete="off" spellcheck="false">
-          <button type="button" id="tableSearchClear" class="table-search-clear" aria-label="Aramayi temizle" title="Temizle">
-            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-width="2" fill="none" d="m3 3 8 8M11 3l-8 8"/></svg>
-          </button>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 ml-auto w-full sm:w-auto">
+          <label class="flex items-center gap-2 text-sm text-slate-600 shrink-0">
+            <span class="whitespace-nowrap font-medium">Kullanici</span>
+            <select id="userFilter" class="table-filter-select rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm min-w-[9rem] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none">
+              <option value="">Tumu</option>
+              <% if (hasUnassignedGuestsFlag) { %><option value="__none__">—</option><% } %>
+              <% for (const u of filterUsersList) { %><option value="<%= u.id %>"><%= u.username %></option><% } %>
+            </select>
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-600 shrink-0">
+            <span class="whitespace-nowrap font-medium">Sehir</span>
+            <select id="cityFilter" class="table-filter-select rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm min-w-[9rem] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none">
+              <option value="">Tumu</option>
+              <% if (hasEmptyCityGuestsFlag) { %><option value="__none__">—</option><% } %>
+              <% for (const c of filterCitiesList) { %><option value="<%= c.city %>"><%= c.city %></option><% } %>
+            </select>
+          </label>
+          <div class="table-search w-full sm:w-auto">
+            <input type="search" id="tableSearch" class="table-search-input" placeholder="Tabloda ara..." autocomplete="off" spellcheck="false">
+            <button type="button" id="tableSearchClear" class="table-search-clear" aria-label="Aramayi temizle" title="Temizle">
+              <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-width="2" fill="none" d="m3 3 8 8M11 3l-8 8"/></svg>
+            </button>
+          </div>
         </div>
       </div>
       <div id="tableWrap" class="overflow-x-auto">
         <table class="min-w-full text-sm">
-          <thead class="bg-slate-50"><tr><th class="px-4 py-3 text-left">ID</th><th class="px-4 py-3 text-left" title="Isme gore siralama"><button type="button" class="sort-btn inline-flex items-center gap-1 font-semibold text-left text-slate-800 hover:text-indigo-700" data-sort-key="name" aria-label="Ad Soyad sirala">Ad Soyad <span class="sort-indicator text-slate-400" aria-hidden="true">A-Z</span></button></th><% if (!readOnly) { %><th class="px-4 py-3 text-left">Telefon</th><th class="px-4 py-3 text-left">Email</th><% } %><th class="px-4 py-3 text-left" title="Sehire gore siralama"><button type="button" class="sort-btn inline-flex items-center gap-1 font-semibold text-left text-slate-800 hover:text-indigo-700" data-sort-key="city" aria-label="Sehir sirala">Sehir <span class="sort-indicator text-slate-400" aria-hidden="true"></span></button></th><th class="px-4 py-3 text-left" title="Statusa gore siralama"><button type="button" class="sort-btn inline-flex items-center gap-1 font-semibold text-left text-slate-800 hover:text-indigo-700" data-sort-key="status" aria-label="Status sirala">Status <span class="sort-indicator text-slate-400" aria-hidden="true"></span></button></th><% if (!readOnly) { %><th class="px-4 py-3 text-left whitespace-nowrap">Islem</th><% } %></tr></thead>
+          <thead class="bg-slate-50"><tr><th class="px-4 py-3 text-left">ID</th><th class="px-4 py-3 text-left" title="Isme gore siralama"><button type="button" class="sort-btn inline-flex items-center gap-1 font-semibold text-left text-slate-800 hover:text-indigo-700" data-sort-key="name" aria-label="Ad Soyad sirala">Ad Soyad <span class="sort-indicator text-slate-400" aria-hidden="true">A-Z</span></button></th><% if (!readOnly) { %><th class="px-4 py-3 text-left">Telefon</th><th class="px-4 py-3 text-left">Email</th><% } %><th class="px-4 py-3 text-left" title="Sehire gore siralama"><button type="button" class="sort-btn inline-flex items-center gap-1 font-semibold text-left text-slate-800 hover:text-indigo-700" data-sort-key="city" aria-label="Sehir sirala">Sehir <span class="sort-indicator text-slate-400" aria-hidden="true"></span></button></th><th class="px-4 py-3 text-left" title="Statusa gore siralama"><button type="button" class="sort-btn inline-flex items-center gap-1 font-semibold text-left text-slate-800 hover:text-indigo-700" data-sort-key="status" aria-label="Status sirala">Status <span class="sort-indicator text-slate-400" aria-hidden="true"></span></button></th><th class="px-4 py-3 text-left">Kullanici</th><% if (!readOnly) { %><th class="px-4 py-3 text-left whitespace-nowrap">Islem</th><% } %></tr></thead>
           <tbody>
             <% for (const g of guests) {
               const guestUserId = g.user_id == null ? null : Number(g.user_id);
@@ -54,6 +76,7 @@
                 </div>
                 <% } %>
               </td>
+              <td class="px-4 py-3 guest-cell-kullanici text-slate-600 whitespace-nowrap"><%= g.kullanici || "—" %></td>
               <% if (!readOnly) { %>
               <td class="px-4 py-3 guest-cell-actions align-top">
                 <% if (canManage) { %>
@@ -347,13 +370,22 @@
 
   const tableSearch = document.getElementById('tableSearch');
   const tableSearchClear = document.getElementById('tableSearchClear');
-  const tableRows = () => document.querySelectorAll('#tableWrap tbody tr');
+  const userFilter = document.getElementById('userFilter');
+  const cityFilter = document.getElementById('cityFilter');
+  const tableRows = () => document.querySelectorAll('#tableWrap tbody tr.guest-row');
   function applyTableFilter(){
     const q = (tableSearch && tableSearch.value || '').trim().toLowerCase();
+    const userId = userFilter ? userFilter.value : '';
+    const city = cityFilter ? cityFilter.value : '';
     if (tableSearchClear) tableSearchClear.classList.toggle('is-visible', q.length > 0);
     tableRows().forEach((tr) => {
       const hay = tr.innerText.toLowerCase().replace(/\s+/g, ' ');
-      tr.style.display = !q || hay.includes(q) ? '' : 'none';
+      const matchSearch = !q || hay.includes(q);
+      const rowUserId = tr.dataset.userId || '';
+      const matchUser = !userId || (userId === '__none__' ? !rowUserId : rowUserId === userId);
+      const rowCity = tr.dataset.city || '';
+      const matchCity = !city || (city === '__none__' ? !rowCity : rowCity === city);
+      tr.style.display = matchSearch && matchUser && matchCity ? '' : 'none';
     });
   }
   if (tableSearch) {
@@ -366,6 +398,12 @@
       tableSearch.focus();
       applyTableFilter();
     });
+  }
+  if (userFilter) {
+    userFilter.addEventListener('change', applyTableFilter);
+  }
+  if (cityFilter) {
+    cityFilter.addEventListener('change', applyTableFilter);
   }
   document.querySelectorAll('.sort-btn').forEach((btn)=>{
     btn.addEventListener('click', ()=> setSort(btn.dataset.sortKey));

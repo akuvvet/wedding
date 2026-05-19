@@ -68,7 +68,7 @@
               <th class="px-4 py-3 text-left">Baslangic</th><th class="px-4 py-3 text-left">Bitis</th>
               <th class="px-4 py-3 text-left">Aksiyon</th>
               <th class="px-4 py-3 text-left">Aciklama</th>
-              <th class="px-4 py-3 text-left">Sahis</th>
+              <th class="px-4 py-3 text-left" title="Sahise gore siralama"><button type="button" class="sort-btn inline-flex items-center gap-1 font-semibold text-left text-slate-800 hover:text-indigo-700" data-sort-key="sahis" aria-label="Sahis sirala">Sahis <span class="sort-indicator text-slate-400" aria-hidden="true"></span></button></th>
               <% if (!readOnly) { %><th class="px-4 py-3 text-left whitespace-nowrap">Islem</th><% } %>
             </tr>
           </thead>
@@ -297,12 +297,44 @@
     const m = parseInt(parts[1], 10) || 0;
     return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
   }
-  function compareFlowRows(a, b){
+  const sortState = { key: 'tarih', direction: 'asc' };
+
+  function flowRowSahisForSort(tr){
+    const cell = tr.querySelector('.flow-cell-sahis');
+    if(!cell) return '';
+    const inp = cell.querySelector('input.flow-inline-field');
+    if(inp) return String(inp.value || '').trim();
+    return String(cell.textContent || '').trim();
+  }
+  function compareFlowRowsDefault(a, b){
     const td = String(a.dataset.tarih || "").localeCompare(String(b.dataset.tarih || ""));
     if (td !== 0) return td;
     const sb = padSaat(a.dataset.saatBaslangic).localeCompare(padSaat(b.dataset.saatBaslangic));
     if (sb !== 0) return sb;
     return padSaat(a.dataset.saatBitis).localeCompare(padSaat(b.dataset.saatBitis));
+  }
+  function compareFlowRows(a, b){
+    const factor = sortState.direction === 'asc' ? 1 : -1;
+    if(sortState.key === 'sahis'){
+      const cmp = flowRowSahisForSort(a).localeCompare(flowRowSahisForSort(b), 'tr', { sensitivity: 'base' });
+      if(cmp !== 0) return cmp * factor;
+      return compareFlowRowsDefault(a, b);
+    }
+    return compareFlowRowsDefault(a, b) * factor;
+  }
+  function refreshSortIndicators(){
+    document.querySelectorAll('.sort-btn').forEach((btn)=>{
+      const key = btn.dataset.sortKey;
+      const indicator = btn.querySelector('.sort-indicator');
+      if(!indicator) return;
+      if(key !== sortState.key){
+        indicator.textContent = '';
+        btn.classList.remove('text-indigo-700');
+        return;
+      }
+      indicator.textContent = sortState.direction === 'asc' ? 'A-Z' : 'Z-A';
+      btn.classList.add('text-indigo-700');
+    });
   }
   function sortFlowTable(){
     if(editingRow) return;
@@ -311,6 +343,17 @@
     const rows = Array.from(tbody.querySelectorAll('tr.flow-row'));
     rows.sort(compareFlowRows);
     for(const r of rows) tbody.appendChild(r);
+    refreshSortIndicators();
+  }
+  function setSort(key){
+    if(sortState.key === key){
+      sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+    }else{
+      sortState.key = key;
+      sortState.direction = 'asc';
+    }
+    sortFlowTable();
+    applyTableFilter();
   }
 
   const tableWrap = document.getElementById('tableWrap');
@@ -362,6 +405,9 @@
       applyTableFilter();
     });
   }
+  document.querySelectorAll('.sort-btn').forEach((btn)=>{
+    btn.addEventListener('click', ()=> setSort(btn.dataset.sortKey));
+  });
   sortFlowTable();
   applyTableFilter();
   </script>
