@@ -72,6 +72,7 @@ $occupancyRate = $salonCapacity > 0 ? min(100, ($counts[1] / $salonCapacity) * 1
               <?php if ($hasUnassignedGuests): ?><option value="__none__">—</option><?php endif; ?>
               <?php foreach ($filterUsers as $fu): ?><option value="<?= (int)$fu['id'] ?>"><?= htmlspecialchars($fu['username'], ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?>
             </select>
+            <span id="filteredGuestCount" class="text-slate-500 text-sm tabular-nums whitespace-nowrap" title="Filtreye uyan satir / tablodaki tum satirlar"></span>
           </label>
           <label class="flex items-center gap-2 text-sm text-slate-600 shrink-0">
             <span class="whitespace-nowrap font-medium">Sehir</span>
@@ -402,6 +403,7 @@ $occupancyRate = $salonCapacity > 0 ? min(100, ($counts[1] / $salonCapacity) * 1
       if(editingRow === tr) editingRow = null;
       tr.remove();
       updateStats(data.stats);
+      applyTableFilter();
     }
   });
 
@@ -409,21 +411,30 @@ $occupancyRate = $salonCapacity > 0 ? min(100, ($counts[1] / $salonCapacity) * 1
   const tableSearchClear = document.getElementById('tableSearchClear');
   const userFilter = document.getElementById('userFilter');
   const cityFilter = document.getElementById('cityFilter');
+  const filteredGuestCountEl = document.getElementById('filteredGuestCount');
   const tableRows = () => document.querySelectorAll('#tableWrap tbody tr.guest-row');
   function applyTableFilter(){
     const q = (tableSearch && tableSearch.value || '').trim().toLowerCase();
     const userId = userFilter ? userFilter.value : '';
     const city = cityFilter ? cityFilter.value : '';
     if (tableSearchClear) tableSearchClear.classList.toggle('is-visible', q.length > 0);
-    tableRows().forEach((tr) => {
+    let visible = 0;
+    const rows = tableRows();
+    rows.forEach((tr) => {
       const hay = tr.innerText.toLowerCase().replace(/\s+/g, ' ');
       const matchSearch = !q || hay.includes(q);
       const rowUserId = tr.dataset.userId || '';
       const matchUser = !userId || (userId === '__none__' ? !rowUserId : rowUserId === userId);
       const rowCity = tr.dataset.city || '';
       const matchCity = !city || (city === '__none__' ? !rowCity : rowCity === city);
-      tr.style.display = matchSearch && matchUser && matchCity ? '' : 'none';
+      const show = matchSearch && matchUser && matchCity;
+      tr.style.display = show ? '' : 'none';
+      if (show) visible += 1;
     });
+    if (filteredGuestCountEl) {
+      const total = rows.length;
+      filteredGuestCountEl.textContent = total ? `${visible} / ${total}` : '';
+    }
   }
   if (tableSearch) {
     tableSearch.addEventListener('input', applyTableFilter);
