@@ -16,9 +16,7 @@ const VIEWER_USERNAME = "izleyici";
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
-if (process.env.NODE_ENV !== "production") {
-  app.set("view cache", false);
-}
+app.set("view cache", false);
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
@@ -549,11 +547,12 @@ app.get("/davet/:token", async (req, res) => {
   if (!token) return res.status(404).send("Davet bulunamadi.");
   try {
     const [rows] = await pool.query(
-      "SELECT id, name, party_size, rsvp_note, rsvp_at FROM guests WHERE invite_token = ? LIMIT 1",
+      "SELECT id, name, party_size, rsvp_note, rsvp_at, status FROM guests WHERE invite_token = ? LIMIT 1",
       [token]
     );
     const guest = rows[0];
     if (!guest) return res.status(404).send("Davet bulunamadi veya suresi dolmus.");
+    res.set("Cache-Control", "no-store");
     res.render("rsvp", {
       token,
       guest,
@@ -583,13 +582,18 @@ app.post("/api/rsvp/:token", async (req, res) => {
   const token = String(req.params.token || "").trim();
   const guestId = Number(req.body.guest_id || 0);
   const typedName = String(req.body.name || "").trim();
-  const partySize = Number(req.body.party_size || 0);
+  const notAttending = req.body.not_attending === true || req.body.not_attending === "true";
+  const partySize = Number(req.body.party_size ?? (notAttending ? 0 : 1));
   const note = String(req.body.note || "").trim().slice(0, 500);
 
   if (!token || !guestId || !typedName) {
     return res.status(422).json({ success: false, message: "Lutfen isminizi secin veya yazin." });
   }
-  if (!Number.isInteger(partySize) || partySize < 1 || partySize > 5) {
+  if (notAttending) {
+    if (!Number.isInteger(partySize) || partySize !== 0) {
+      return res.status(422).json({ success: false, message: "Gecersiz katilim bilgisi." });
+    }
+  } else if (!Number.isInteger(partySize) || partySize < 1 || partySize > 5) {
     return res.status(422).json({ success: false, message: "Kisi sayisi 1 ile 5 arasinda olmalidir." });
   }
 
@@ -622,14 +626,25 @@ app.post("/api/rsvp/:token", async (req, res) => {
     }
 
     await pool.query(
-      "UPDATE guests SET name = ?, party_size = ?, rsvp_note = ?, rsvp_at = CURRENT_TIMESTAMP, status = 1 WHERE id = ?",
-      [selectedGuest.name, partySize, note || null, selectedGuest.id]
+      notAttending
+        ? "UPDATE guests SET name = ?, party_size = 0, rsvp_note = ?, rsvp_at = CURRENT_TIMESTAMP, status = 3 WHERE id = ?"
+        : "UPDATE guests SET name = ?, party_size = ?, rsvp_note = ?, rsvp_at = CURRENT_TIMESTAMP, status = 1 WHERE id = ?",
+      notAttending
+        ? [selectedGuest.name, note || null, selectedGuest.id]
+        : [selectedGuest.name, partySize, note || null, selectedGuest.id]
     );
 
     return res.json({
       success: true,
-      message: "Katiliminiz kaydedildi. Tesekkur ederiz!",
-      guest: { id: selectedGuest.id, name: selectedGuest.name, party_size: partySize }
+      message: notAttending
+        ? "Katilamayacaginiz kaydedildi. Tesekkur ederiz."
+        : "Katiliminiz kaydedildi. Tesekkur ederiz!",
+      guest: {
+        id: selectedGuest.id,
+        name: selectedGuest.name,
+        party_size: notAttending ? 0 : partySize,
+        status: notAttending ? 3 : 1
+      }
     });
   } catch (err) {
     return res.status(500).json({ success: false, message: "Sunucu hatasi: " + err.message });

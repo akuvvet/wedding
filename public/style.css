@@ -299,6 +299,15 @@ tr.guest-row-editing {
     background: #4338ca;
 }
 
+.rsvp-decline-wrap {
+    display: block;
+}
+
+.rsvp-decline-option:has(input:checked) {
+    border-color: #f43f5e;
+    background: #ffe4e6;
+}
+
 .guest-cell-kullanici {
     max-width: 3.5rem;
     text-align: center;

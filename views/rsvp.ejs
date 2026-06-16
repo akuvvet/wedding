@@ -54,14 +54,25 @@
             <p id="selectedGuestName" class="text-base font-semibold text-indigo-900 mt-1"></p>
           </div>
 
-          <div>
+          <div id="declineWrap" class="rsvp-decline-wrap">
+            <label for="notAttending" class="rsvp-decline-option flex items-start gap-3 rounded-xl border-2 border-rose-200 bg-rose-50 px-4 py-3 cursor-pointer">
+              <input
+                type="checkbox"
+                id="notAttending"
+                name="not_attending"
+                class="mt-1 h-4 w-4 rounded border-rose-300 text-rose-600 focus:ring-rose-500"
+                <%= Number(guest.status) === 3 ? "checked" : "" %>
+              >
+              <span class="text-sm text-slate-700">
+                <span class="font-semibold text-rose-900">Davet'e katilamayacagim</span>
+                <span class="block text-xs text-rose-700/80 mt-0.5">Isaretlerseniz kisi sayisi 0 olur ve katilamayacaginiz kaydedilir.</span>
+              </span>
+            </label>
+          </div>
+
+          <div id="partySizeWrap">
             <label for="partySize" class="block text-sm font-medium text-slate-700 mb-1.5">Toplam kac kisi ile geleceksiniz?</label>
-            <select id="partySize" name="party_size" class="rsvp-input w-full" required>
-              <% const maxPartySize = 5; const selectedPartySize = Math.min(Number(guest.party_size || 1), maxPartySize); %>
-              <% for (let i = 1; i <= maxPartySize; i++) { %>
-              <option value="<%= i %>"<%= selectedPartySize == i ? ' selected' : '' %>><%= i %> kisi</option>
-              <% } %>
-            </select>
+            <select id="partySize" name="party_size" class="rsvp-input w-full" required></select>
             <p class="mt-1.5 text-xs text-slate-500">Kendiniz dahil toplam kisi sayisini secin.</p>
           </div>
 
@@ -92,9 +103,12 @@
 
   <script>
   const TOKEN = <%- JSON.stringify(token) %>;
-  const INITIAL_GUEST = <%- JSON.stringify({ id: guest.id, name: guest.name }) %>;
+  const INITIAL_GUEST = <%- JSON.stringify({ id: guest.id, name: guest.name, status: guest.status, party_size: guest.party_size }) %>;
+  const MAX_PARTY_SIZE = 5;
   const nameInput = document.getElementById('guestName');
   const guestIdInput = document.getElementById('guestId');
+  const notAttendingInput = document.getElementById('notAttending');
+  const partySizeSelect = document.getElementById('partySize');
   const matchPanel = document.getElementById('matchPanel');
   const matchList = document.getElementById('matchList');
   const selectedGuest = document.getElementById('selectedGuest');
@@ -104,6 +118,44 @@
   const rsvpSuccess = document.getElementById('rsvpSuccess');
   let searchTimer = null;
   let selectedMatch = INITIAL_GUEST;
+  let savedPartySize = Math.min(Math.max(Number(INITIAL_GUEST.party_size || 1), 1), MAX_PARTY_SIZE);
+
+  function buildPartySizeOptions(selectedValue) {
+    partySizeSelect.replaceChildren();
+    for (let i = 1; i <= MAX_PARTY_SIZE; i += 1) {
+      const opt = document.createElement('option');
+      opt.value = String(i);
+      opt.textContent = `${i} kisi`;
+      if (i === selectedValue) opt.selected = true;
+      partySizeSelect.appendChild(opt);
+    }
+  }
+
+  function setDeclineMode(decline) {
+    if (decline) {
+      if (!notAttendingInput.checked) {
+        savedPartySize = Number(partySizeSelect.value || 1) || 1;
+      }
+      notAttendingInput.checked = true;
+      partySizeSelect.replaceChildren();
+      const opt = document.createElement('option');
+      opt.value = '0';
+      opt.textContent = '0 kisi';
+      opt.selected = true;
+      partySizeSelect.appendChild(opt);
+      partySizeSelect.disabled = true;
+      partySizeSelect.required = false;
+      return;
+    }
+    notAttendingInput.checked = false;
+    partySizeSelect.disabled = false;
+    partySizeSelect.required = true;
+    buildPartySizeOptions(savedPartySize);
+  }
+
+  function isDeclineMode() {
+    return notAttendingInput.checked;
+  }
 
   function showError(msg) {
     rsvpError.textContent = msg;
@@ -174,13 +226,24 @@
   if (INITIAL_GUEST.name) {
     selectGuest(INITIAL_GUEST);
   }
+  if (Number(INITIAL_GUEST.status) === 3) {
+    setDeclineMode(true);
+  } else {
+    buildPartySizeOptions(savedPartySize);
+  }
+
+  notAttendingInput.addEventListener('change', () => {
+    clearMessages();
+    setDeclineMode(notAttendingInput.checked);
+  });
 
   rsvpForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearMessages();
     const name = nameInput.value.trim();
     const guestId = Number(guestIdInput.value || 0);
-    const partySize = Number(document.getElementById('partySize').value || 0);
+    const decline = isDeclineMode();
+    const partySize = decline ? 0 : Number(partySizeSelect.value || 0);
     const note = document.getElementById('rsvpNote').value.trim();
     if (!name) {
       showError('Lutfen isminizi yazin.');
@@ -199,15 +262,23 @@
       const res = await fetch(`/api/rsvp/${TOKEN}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ guest_id: guestId, name, party_size: partySize, note })
+        body: JSON.stringify({ guest_id: guestId, name, party_size: partySize, not_attending: decline, note })
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
         showError(data.message || 'Kayit basarisiz oldu.');
         return;
       }
-      showSuccess(data.message || 'Katiliminiz kaydedildi.');
-      if (data.guest) selectGuest(data.guest);
+      showSuccess(data.message || (decline ? 'Katilamayacaginiz kaydedildi.' : 'Katiliminiz kaydedildi.'));
+      if (data.guest) {
+        selectGuest(data.guest);
+        if (Number(data.guest.status) === 3 || Number(data.guest.party_size) === 0) {
+          setDeclineMode(true);
+        } else {
+          savedPartySize = Number(data.guest.party_size || 1);
+          setDeclineMode(false);
+        }
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       showError('Baglanti hatasi. Lutfen tekrar deneyin.');
