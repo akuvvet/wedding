@@ -209,90 +209,297 @@ tr.guest-row-editing {
     vertical-align: top;
 }
 
+/* —— RSVP invitation page (black & gold) —— */
+.rsvp-page {
+    min-height: 100vh;
+    margin: 0;
+    font-family: "Montserrat", system-ui, sans-serif;
+    color: #e8e0d0;
+    background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(201, 169, 98, 0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(201, 169, 98, 0.06) 0%, transparent 50%),
+        linear-gradient(165deg, #0a0a0a 0%, #141210 45%, #0d0c0a 100%);
+}
+
+.rsvp-main {
+    max-width: 32rem;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 2.5rem;
+}
+
+@media (min-width: 640px) {
+    .rsvp-main {
+        padding: 2.5rem 1.5rem 3rem;
+    }
+}
+
+.rsvp-card {
+    overflow: hidden;
+    border-radius: 1.25rem;
+    border: 1px solid rgba(201, 169, 98, 0.35);
+    background: linear-gradient(180deg, #161412 0%, #11100e 100%);
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.5),
+        0 24px 60px rgba(0, 0, 0, 0.55),
+        0 0 80px rgba(201, 169, 98, 0.06);
+}
+
 .rsvp-header {
-    background: linear-gradient(135deg, #e11d48 0%, #7c3aed 100%);
+    position: relative;
+    padding: 2.5rem 1.5rem 2rem;
+    text-align: center;
+    background:
+        linear-gradient(180deg, rgba(201, 169, 98, 0.08) 0%, transparent 100%),
+        #0c0b09;
+    border-bottom: 1px solid rgba(201, 169, 98, 0.25);
+}
+
+.rsvp-ornament {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.rsvp-ornament-line {
+    width: 3.5rem;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #c9a962, transparent);
+}
+
+.rsvp-ornament-diamond {
+    width: 0.45rem;
+    height: 0.45rem;
+    background: #d4af37;
+    transform: rotate(45deg);
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.5);
+}
+
+.rsvp-badge {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: #c9a962;
+}
+
+.rsvp-couple {
+    margin: 0.75rem 0 0;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: clamp(1.85rem, 5vw, 2.5rem);
+    font-weight: 500;
+    line-height: 1.2;
+    color: #f5efe3;
+    letter-spacing: 0.02em;
+}
+
+.rsvp-amp {
+    font-style: italic;
+    font-weight: 400;
+    color: #d4af37;
+}
+
+.rsvp-date {
+    margin: 0.65rem 0 0;
+    font-size: 1.05rem;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    color: #c9a962;
+}
+
+.rsvp-intro {
+    margin: 1rem auto 0;
+    max-width: 22rem;
+    font-size: 0.82rem;
+    font-weight: 300;
+    line-height: 1.55;
+    color: #9a9288;
 }
 
 .rsvp-lang-switch {
     position: absolute;
-    top: 0.75rem;
-    right: 0.75rem;
+    top: 0.85rem;
+    right: 0.85rem;
     display: flex;
     align-items: center;
     gap: 0.35rem;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
 }
 
 .rsvp-lang-btn {
-    color: rgba(255, 255, 255, 0.75);
+    color: rgba(201, 169, 98, 0.55);
     text-decoration: none;
-    padding: 0.15rem 0.35rem;
-    border-radius: 0.35rem;
+    padding: 0.2rem 0.45rem;
+    border-radius: 0.25rem;
     transition: color 0.15s ease, background-color 0.15s ease;
 }
 
 .rsvp-lang-btn:hover {
-    color: #ffffff;
+    color: #e8d5a8;
 }
 
 .rsvp-lang-btn.is-active {
-    color: #ffffff;
+    color: #1a1814;
     font-weight: 600;
-    background-color: rgba(255, 255, 255, 0.18);
+    background: linear-gradient(135deg, #d4af37 0%, #b8962e 100%);
 }
 
 .rsvp-lang-sep {
-    color: rgba(255, 255, 255, 0.45);
+    color: rgba(201, 169, 98, 0.3);
     user-select: none;
 }
 
-.rsvp-card {
-    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+.rsvp-body {
+    padding: 1.5rem 1.25rem 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+}
+
+@media (min-width: 640px) {
+    .rsvp-body {
+        padding: 1.75rem 1.75rem 2rem;
+    }
+}
+
+.rsvp-alert {
+    padding: 0.85rem 1rem;
+    border-radius: 0.65rem;
+    font-size: 0.85rem;
+    line-height: 1.45;
+}
+
+.rsvp-alert.hidden {
+    display: none;
+}
+
+.rsvp-alert-success {
+    background: rgba(201, 169, 98, 0.1);
+    border: 1px solid rgba(201, 169, 98, 0.35);
+    color: #e8d5a8;
+}
+
+.rsvp-alert-error {
+    background: rgba(120, 40, 40, 0.25);
+    border: 1px solid rgba(180, 80, 80, 0.4);
+    color: #f0c4c4;
+}
+
+.rsvp-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+}
+
+.rsvp-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.rsvp-field-label {
+    margin: 0;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #c9a962;
+}
+
+.rsvp-field-hint {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 300;
+    color: #6b6560;
+}
+
+.rsvp-guest-box {
+    padding: 1rem 1.1rem;
+    border-radius: 0.65rem;
+    background: rgba(201, 169, 98, 0.06);
+    border: 1px solid rgba(201, 169, 98, 0.22);
+}
+
+.rsvp-guest-name {
+    margin: 0.35rem 0 0;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 1.35rem;
+    font-weight: 500;
+    color: #f5efe3;
 }
 
 .rsvp-input {
     box-sizing: border-box;
-    padding: 0.65rem 0.85rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.75rem;
-    font-size: 0.95rem;
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid rgba(201, 169, 98, 0.25);
+    border-radius: 0.55rem;
+    font-family: inherit;
+    font-size: 0.9rem;
     line-height: 1.4;
+    color: #f0ebe0;
+    background: rgba(0, 0, 0, 0.35);
     outline: none;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+.rsvp-input::placeholder {
+    color: #5c5650;
+}
+
 .rsvp-input:focus {
-    border-color: #a78bfa;
-    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.25);
+    border-color: #c9a962;
+    box-shadow: 0 0 0 3px rgba(201, 169, 98, 0.15);
+}
+
+.rsvp-textarea {
+    min-height: 5rem;
+    resize: vertical;
+}
+
+.rsvp-input option {
+    background: #1a1814;
+    color: #f0ebe0;
 }
 
 .rsvp-match-btn {
     padding: 0.65rem 0.85rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.75rem;
-    background: #f8fafc;
+    border: 1px solid rgba(201, 169, 98, 0.25);
+    border-radius: 0.55rem;
+    background: rgba(0, 0, 0, 0.3);
+    color: #e8e0d0;
     transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .rsvp-match-btn:hover {
-    background: #eef2ff;
-    border-color: #c7d2fe;
+    background: rgba(201, 169, 98, 0.1);
+    border-color: rgba(201, 169, 98, 0.45);
 }
 
 .rsvp-submit {
-    padding: 0.8rem 1rem;
-    border: none;
-    border-radius: 0.9rem;
-    background: linear-gradient(135deg, #e11d48 0%, #7c3aed 100%);
-    color: #fff;
-    font-size: 1rem;
+    width: 100%;
+    padding: 0.9rem 1rem;
+    border: 1px solid rgba(212, 175, 55, 0.5);
+    border-radius: 0.55rem;
+    background: linear-gradient(135deg, #c9a962 0%, #a8862e 50%, #8b7028 100%);
+    color: #1a1510;
+    font-family: inherit;
+    font-size: 0.82rem;
     font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
     cursor: pointer;
-    transition: opacity 0.15s ease, transform 0.1s ease;
+    transition: filter 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+    box-shadow: 0 4px 20px rgba(201, 169, 98, 0.25);
 }
 
 .rsvp-submit:hover {
-    opacity: 0.95;
+    filter: brightness(1.08);
+    box-shadow: 0 6px 28px rgba(201, 169, 98, 0.35);
 }
 
 .rsvp-submit:active {
@@ -300,8 +507,19 @@ tr.guest-row-editing {
 }
 
 .rsvp-submit:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
+    filter: none;
+    box-shadow: none;
+}
+
+.rsvp-footer-note {
+    margin: 0;
+    padding-top: 0.5rem;
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 300;
+    color: #5c5650;
 }
 
 .guest-col-email,
@@ -336,13 +554,80 @@ tr.guest-row-editing {
     display: block;
 }
 
+.rsvp-decline-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    border-radius: 0.65rem;
+    border: 1px solid rgba(201, 169, 98, 0.18);
+    background: rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.rsvp-decline-option:hover {
+    border-color: rgba(201, 169, 98, 0.3);
+}
+
+.rsvp-decline-checkbox {
+    margin-top: 0.15rem;
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+    accent-color: #c9a962;
+    cursor: pointer;
+}
+
+.rsvp-decline-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.85rem;
+}
+
+.rsvp-decline-title {
+    font-weight: 500;
+    color: #d4cfc4;
+}
+
+.rsvp-decline-hint {
+    font-size: 0.75rem;
+    font-weight: 300;
+    color: #6b6560;
+}
+
 .rsvp-decline-option:has(input:checked) {
-    border-color: #f43f5e;
-    background: #ffe4e6;
+    border-color: rgba(201, 169, 98, 0.45);
+    background: rgba(201, 169, 98, 0.08);
+}
+
+.rsvp-decline-option:has(input:checked) .rsvp-decline-title {
+    color: #e8d5a8;
 }
 
 .rsvp-calendar-suggest {
-    margin-bottom: 0.25rem;
+    padding: 1rem 1.1rem;
+    border-radius: 0.65rem;
+    border: 1px solid rgba(201, 169, 98, 0.22);
+    background: rgba(201, 169, 98, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.rsvp-calendar-title {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #e8d5a8;
+}
+
+.rsvp-calendar-meta {
+    margin: 0.35rem 0 0;
+    font-size: 0.75rem;
+    font-weight: 300;
+    color: #8a8278;
 }
 
 .rsvp-calendar-actions {
@@ -355,28 +640,30 @@ tr.guest-row-editing {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0.5rem 0.85rem;
-    border-radius: 0.6rem;
-    background: #4f46e5;
-    color: #fff;
-    font-size: 0.8125rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 0.45rem;
+    background: linear-gradient(135deg, #c9a962 0%, #a8862e 100%);
+    color: #1a1510;
+    font-size: 0.75rem;
     font-weight: 600;
+    letter-spacing: 0.04em;
     text-decoration: none;
-    transition: background-color 0.15s ease;
+    transition: filter 0.15s ease;
 }
 
 .rsvp-calendar-btn:hover {
-    background: #4338ca;
+    filter: brightness(1.1);
 }
 
 .rsvp-calendar-btn-secondary {
-    background: #fff;
-    color: #4338ca;
-    border: 1px solid #c7d2fe;
+    background: transparent;
+    color: #c9a962;
+    border: 1px solid rgba(201, 169, 98, 0.4);
 }
 
 .rsvp-calendar-btn-secondary:hover {
-    background: #eef2ff;
+    background: rgba(201, 169, 98, 0.1);
+    filter: none;
 }
 
 .guest-cell-kullanici {
