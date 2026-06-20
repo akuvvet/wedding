@@ -733,13 +733,16 @@ tr.guest-row-rsvp-declined:hover {
     cursor: not-allowed;
 }
 
+.stats-grid .stats-card {
+    line-height: 1.2;
+}
+
+.stats-grid .stats-card > p {
+    margin-bottom: 0;
+}
+
 @media (max-width: 639px) {
     .stats-grid .stats-card {
         min-height: 0;
-    }
-
-    .stats-grid .stats-card-emerald #confirmed-guests-ratio {
-        font-size: 0.9375rem;
-        line-height: 1.25;
     }
 }

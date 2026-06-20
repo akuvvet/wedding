@@ -15,20 +15,20 @@
   <%- include('partials/nav', { username, readOnly }) %>
 
   <main class="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
-    <section class="stats-grid grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2 sm:gap-3 xl:gap-4">
-      <div class="stats-card stats-card-emerald col-span-2 md:col-span-1 rounded-lg sm:rounded-xl bg-emerald-600 text-white p-2.5 sm:p-3 xl:p-4">
-        <p class="text-xs sm:text-sm">Kesin Gelecekler (1)</p>
-        <p class="text-xl sm:text-2xl xl:text-3xl font-bold" id="count-1"><%= stats.count1 %></p>
-        <p class="text-xs sm:text-sm mt-1 sm:mt-2 text-emerald-100">LCV onayi</p>
-        <p class="text-base sm:text-xl xl:text-2xl font-bold leading-snug" id="confirmed-guests-ratio"><%= Number(stats.confirmedGuestCount || 0) %> / <%= stats.count1 %> onayladi</p>
-        <p class="text-xs sm:text-sm mt-0.5 sm:mt-1 text-emerald-100" id="confirmed-persons"><%= Number(stats.confirmedPersons || 0) %> kisi gelecek</p>
-        <p class="text-[10px] sm:text-xs mt-1 sm:mt-2 text-emerald-100">LCV katilmayan (0 kisi)</p>
-        <p class="text-sm sm:text-lg xl:text-xl font-bold" id="declined-rsvp-count"><%= Number(stats.declinedRsvpCount || 0) %></p>
+    <section class="stats-grid grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2 sm:gap-3">
+      <div class="stats-card stats-card-emerald col-span-2 md:col-span-1 rounded-lg sm:rounded-xl bg-emerald-600 text-white p-2 sm:p-2.5">
+        <p class="text-[11px] sm:text-xs leading-tight">Kesin Gelecekler (1)</p>
+        <p class="text-lg sm:text-xl font-bold leading-none mt-0.5" id="count-1"><%= stats.count1 %></p>
+        <p class="text-[10px] sm:text-xs mt-1 text-emerald-100 leading-tight">LCV onayi</p>
+        <p class="text-sm sm:text-base font-bold leading-tight" id="confirmed-guests-ratio"><%= Number(stats.confirmedGuestCount || 0) %> / <%= stats.count1 %> onayladi</p>
+        <p class="text-[10px] sm:text-xs mt-0.5 text-emerald-100 leading-tight" id="confirmed-persons"><%= Number(stats.confirmedPersons || 0) %> kisi gelecek</p>
+        <p class="text-[10px] sm:text-xs mt-1 text-emerald-100 leading-tight">LCV katilmayan (0 kisi)</p>
+        <p class="text-sm sm:text-base font-bold leading-none" id="declined-rsvp-count"><%= Number(stats.declinedRsvpCount || 0) %></p>
       </div>
-      <div class="stats-card rounded-lg sm:rounded-xl bg-amber-500 text-white p-2.5 sm:p-3 xl:p-4"><p class="text-xs sm:text-sm">Belirsizler (2)</p><p class="text-xl sm:text-2xl xl:text-3xl font-bold" id="count-2"><%= stats.count2 %></p></div>
-      <div class="stats-card rounded-lg sm:rounded-xl bg-rose-600 text-white p-2.5 sm:p-3 xl:p-4"><p class="text-xs sm:text-sm">Elenenler / Yedekler (3)</p><p class="text-xl sm:text-2xl xl:text-3xl font-bold" id="count-3"><%= stats.count3 %></p></div>
-      <div class="stats-card rounded-lg sm:rounded-xl bg-slate-800 text-white p-2.5 sm:p-3 xl:p-4"><p class="text-xs sm:text-sm">Toplam Davetli</p><p class="text-xl sm:text-2xl xl:text-3xl font-bold" id="total-guests"><%= stats.totalGuests %></p></div>
-      <div class="stats-card rounded-lg sm:rounded-xl bg-indigo-700 text-white p-2.5 sm:p-3 xl:p-4 md:col-span-2 xl:col-span-1"><p class="text-xs sm:text-sm">Kapasite / Doluluk</p><p class="text-sm sm:text-base xl:text-lg"><%= stats.capacity %> kisi</p><p class="text-lg sm:text-xl xl:text-2xl font-bold" id="occupancy-rate"><%= stats.occupancyRate %>%</p></div>
+      <div class="stats-card rounded-lg sm:rounded-xl bg-amber-500 text-white p-2 sm:p-2.5"><p class="text-[11px] sm:text-xs leading-tight">Belirsizler (2)</p><p class="text-lg sm:text-xl font-bold leading-none mt-0.5" id="count-2"><%= stats.count2 %></p></div>
+      <div class="stats-card rounded-lg sm:rounded-xl bg-rose-600 text-white p-2 sm:p-2.5"><p class="text-[11px] sm:text-xs leading-tight">Elenenler / Yedekler (3)</p><p class="text-lg sm:text-xl font-bold leading-none mt-0.5" id="count-3"><%= stats.count3 %></p></div>
+      <div class="stats-card rounded-lg sm:rounded-xl bg-slate-800 text-white p-2 sm:p-2.5"><p class="text-[11px] sm:text-xs leading-tight">Toplam Davetli</p><p class="text-lg sm:text-xl font-bold leading-none mt-0.5" id="total-guests"><%= stats.totalGuests %></p></div>
+      <div class="stats-card rounded-lg sm:rounded-xl bg-indigo-700 text-white p-2 sm:p-2.5 md:col-span-2 xl:col-span-1"><p class="text-[11px] sm:text-xs leading-tight">Kapasite / Doluluk</p><p class="text-xs sm:text-sm leading-tight mt-0.5"><%= stats.capacity %> kisi</p><p class="text-base sm:text-lg font-bold leading-none mt-0.5" id="occupancy-rate"><%= stats.occupancyRate %>%</p></div>
     </section>
 
     <section class="bg-white rounded-2xl overflow-hidden border">
