@@ -433,7 +433,8 @@
     // Davet linkini hazir metinle gonderme dugmeleri (telefon / e-posta varsa).
     function sendButtons(g) {
       const off = (label) => `<span class="gl-send-btn is-off" title="${esc(tx('list.sendOwnerOnly'))}">${esc(label)}</span>`;
-      const text = tx('list.inviteMessage', { name: g.name, url: g.url });
+      // Link, mesajla ayni dilde acilsin diye panel dilini tasir.
+      const text = tx('list.inviteMessage', { name: g.name, url: `${g.url}?lang=${LOCALE}` });
       const out = [];
       if (g.hasPhone) {
         const nr = g.can && g.url ? waNumber(g.phone) : '';
