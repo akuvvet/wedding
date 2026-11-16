@@ -2,8 +2,10 @@ const fs = require("fs");
 const path = require("path");
 
 const LOCALES_DIR = path.join(__dirname, "locales");
-const SUPPORTED = new Set(["tr", "de"]);
+// Varsayilan dil Turkce; Almanca ve Ingilizce de secilebilir (panel ve davetiye sayfasi).
+const SUPPORTED = new Set(["tr", "de", "en"]);
 const DEFAULT_LOCALE = "tr";
+const DATE_LOCALES = { tr: "tr-TR", de: "de-DE", en: "en-GB" };
 const LANG_COOKIE = "lang";
 const LANG_COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
 
@@ -95,7 +97,7 @@ function getWeddingCalendar(locale) {
 }
 
 function localeDateTimeFormat(locale) {
-  return locale === "de" ? "de-DE" : "tr-TR";
+  return DATE_LOCALES[locale] || DATE_LOCALES[DEFAULT_LOCALE];
 }
 
 module.exports = {

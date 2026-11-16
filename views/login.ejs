@@ -1,22 +1,25 @@
 <!doctype html>
-<html lang="tr">
+<html lang="<%= locale %>">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Giris</title>
+  <title><%= t('panel.login.title') %></title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="<%= basePath %>/style.css">
 </head>
 <body class="min-h-screen bg-slate-100 flex items-center justify-center p-4">
   <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
-    <h1 class="text-2xl font-bold text-slate-800">Guvenli Giris</h1>
+    <div class="flex items-start justify-between gap-3">
+      <h1 class="text-2xl font-bold text-slate-800"><%= t('panel.login.heading') %></h1>
+      <%- include('partials/lang-switch', { dark: false }) %>
+    </div>
     <% if (error) { %>
       <div class="mt-4 rounded bg-red-100 text-red-700 px-3 py-2 text-sm"><%= error %></div>
     <% } %>
-    <form method="post" action="/login" class="mt-5 space-y-4">
-      <div><label class="text-sm">Kullanici Adi</label><input name="username" required class="mt-1 w-full rounded border px-3 py-2"></div>
-      <div><label class="text-sm">Sifre</label><input type="password" name="password" required class="mt-1 w-full rounded border px-3 py-2"></div>
-      <button class="w-full rounded bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5">Giris Yap</button>
+    <form method="post" action="<%= basePath %>/login" class="mt-5 space-y-4">
+      <div><label class="text-sm" for="loginUser"><%= t('panel.login.username') %></label><input id="loginUser" name="username" required autocomplete="username" class="mt-1 w-full rounded border px-3 py-2"></div>
+      <div><label class="text-sm" for="loginPass"><%= t('panel.login.password') %></label><input id="loginPass" type="password" name="password" required autocomplete="current-password" class="mt-1 w-full rounded border px-3 py-2"></div>
+      <button class="w-full rounded bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5"><%= t('panel.login.submit') %></button>
     </form>
   </div>
 </body>

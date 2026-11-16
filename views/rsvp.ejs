@@ -14,9 +14,10 @@
     <section class="rsvp-card">
       <div class="rsvp-header">
         <nav class="rsvp-lang-switch" aria-label="Language">
-          <a href="<%= typeof basePath !== 'undefined' ? basePath : '' %>/davet/<%= token %>?lang=tr<%= submitted ? '&ok=1' : '' %>" class="rsvp-lang-btn<%= locale === 'tr' ? ' is-active' : '' %>"><%= t('lang.tr') %></a>
-          <span class="rsvp-lang-sep" aria-hidden="true">|</span>
-          <a href="<%= typeof basePath !== 'undefined' ? basePath : '' %>/davet/<%= token %>?lang=de<%= submitted ? '&ok=1' : '' %>" class="rsvp-lang-btn<%= locale === 'de' ? ' is-active' : '' %>"><%= t('lang.de') %></a>
+          <% ['tr', 'de', 'en'].forEach((code, i) => { %>
+          <% if (i > 0) { %><span class="rsvp-lang-sep" aria-hidden="true">|</span><% } %>
+          <a href="<%= basePath %>/davet/<%= token %>?lang=<%= code %><%= submitted ? '&ok=1' : '' %>" lang="<%= code %>" class="rsvp-lang-btn<%= locale === code ? ' is-active' : '' %>"<%- locale === code ? ' aria-current="true"' : '' %>><%= t('lang.' + code) %></a>
+          <% }) %>
         </nav>
         <div class="rsvp-ornament" aria-hidden="true">
           <span class="rsvp-ornament-line"></span>
@@ -39,17 +40,6 @@
         <div id="rsvpError" class="rsvp-alert rsvp-alert-error hidden"></div>
         <div id="rsvpSuccess" class="rsvp-alert rsvp-alert-success hidden"></div>
 
-        <div id="calendarSuggest" class="<%= showCalendar ? '' : 'hidden' %> rsvp-calendar-suggest">
-          <div>
-            <p class="rsvp-calendar-title"><%= t('rsvp.calendarTitle') %></p>
-            <p class="rsvp-calendar-meta"><%= calendar.title %> · 16.01.2027 · 16:00 – 23:00</p>
-          </div>
-          <div class="rsvp-calendar-actions">
-            <a id="googleCalendarBtn" class="rsvp-calendar-btn" href="#" target="_blank" rel="noopener noreferrer"><%= t('rsvp.googleCalendar') %></a>
-            <a class="rsvp-calendar-btn rsvp-calendar-btn-secondary" href="<%= typeof basePath !== 'undefined' ? basePath : '' %>/davet/<%= token %>/takvim.ics"><%= t('rsvp.downloadIcs') %></a>
-          </div>
-        </div>
-
         <form id="rsvpForm" class="rsvp-form" novalidate>
           <input type="hidden" id="guestId" name="guest_id" value="<%= guest.id %>">
 
@@ -58,30 +48,29 @@
             <p id="selectedGuestName" class="rsvp-guest-name"><%= guest.name %></p>
           </div>
 
-          <div id="declineWrap" class="rsvp-decline-wrap">
-            <label for="notAttending" class="rsvp-decline-option">
-              <input
-                type="checkbox"
-                id="notAttending"
-                name="not_attending"
-                class="rsvp-decline-checkbox"
-                <%= Number(guest.status) === 3 ? "checked" : "" %>
-              >
-              <span class="rsvp-decline-text">
-                <span class="rsvp-decline-title"><%= t('rsvp.declineTitle') %></span>
-                <span class="rsvp-decline-hint"><%= t('rsvp.declineHint') %></span>
-              </span>
-            </label>
-          </div>
+          <fieldset class="rsvp-choice">
+            <legend class="rsvp-question"><%= t('rsvp.choiceTitle') %></legend>
+            <div class="rsvp-choice-options">
+              <label class="rsvp-choice-option">
+                <input type="radio" name="attendance" value="yes" class="rsvp-choice-input">
+                <span class="rsvp-choice-mark" aria-hidden="true">&#10003;</span>
+                <span class="rsvp-choice-text"><%= t('rsvp.choiceYes') %></span>
+              </label>
+              <label class="rsvp-choice-option rsvp-choice-option-no">
+                <input type="radio" name="attendance" value="no" class="rsvp-choice-input">
+                <span class="rsvp-choice-mark" aria-hidden="true">&#10007;</span>
+                <span class="rsvp-choice-text"><%= t('rsvp.choiceNo') %></span>
+              </label>
+            </div>
+          </fieldset>
 
-          <div id="partySizeWrap" class="rsvp-field">
-            <label for="partySize" class="rsvp-field-label"><%= t('rsvp.partySizeLabel') %></label>
-            <select id="partySize" name="party_size" class="rsvp-input" required></select>
-            <p class="rsvp-field-hint"><%= t('rsvp.partySizeHint') %></p>
+          <div id="partySizeWrap" class="rsvp-field" hidden>
+            <label for="partySize" class="rsvp-question"><%= t('rsvp.partySizeLabel') %></label>
+            <select id="partySize" name="party_size" class="rsvp-input"></select>
           </div>
 
           <div class="rsvp-field">
-            <label for="rsvpNote" class="rsvp-field-label"><%= t('rsvp.noteLabel') %></label>
+            <label for="rsvpNote" class="rsvp-question"><%= t('rsvp.noteLabel') %></label>
             <textarea
               id="rsvpNote"
               name="note"
@@ -95,6 +84,17 @@
             <%= t('rsvp.submit') %>
           </button>
         </form>
+
+        <div id="calendarSuggest" class="rsvp-calendar-suggest" hidden>
+          <div>
+            <p class="rsvp-calendar-title"><%= t('rsvp.calendarTitle') %></p>
+            <p class="rsvp-calendar-meta"><%= calendar.title %> · 16.01.2027 · 16:00 – 23:00</p>
+          </div>
+          <div class="rsvp-calendar-actions">
+            <a id="googleCalendarBtn" class="rsvp-calendar-btn" href="#" target="_blank" rel="noopener noreferrer"><%= t('rsvp.googleCalendar') %></a>
+            <a class="rsvp-calendar-btn rsvp-calendar-btn-secondary" href="<%= typeof basePath !== 'undefined' ? basePath : '' %>/davet/<%= token %>/takvim.ics"><%= t('rsvp.downloadIcs') %></a>
+          </div>
+        </div>
 
         <% if (guest.rsvp_at) { %>
         <p class="rsvp-footer-note">
@@ -113,7 +113,8 @@
   const I18N = <%- JSON.stringify(i18n.rsvp) %>;
   const MAX_PARTY_SIZE = 5;
   const guestIdInput = document.getElementById('guestId');
-  const notAttendingInput = document.getElementById('notAttending');
+  const choiceInputs = Array.from(document.querySelectorAll('input[name="attendance"]'));
+  const partySizeWrap = document.getElementById('partySizeWrap');
   const partySizeSelect = document.getElementById('partySize');
   const selectedGuestName = document.getElementById('selectedGuestName');
   const rsvpForm = document.getElementById('rsvpForm');
@@ -121,11 +122,7 @@
   const rsvpSuccess = document.getElementById('rsvpSuccess');
   const calendarSuggest = document.getElementById('calendarSuggest');
   const googleCalendarBtn = document.getElementById('googleCalendarBtn');
-  let savedPartySize = Math.min(Math.max(Number(INITIAL_GUEST.party_size || 1), 1), MAX_PARTY_SIZE);
-
-  function personCountLabel(n) {
-    return I18N.personCount.replace('{{n}}', String(n));
-  }
+  const submitBtn = document.getElementById('rsvpSubmit');
 
   function googleCalendarUrl() {
     const params = new URLSearchParams({
@@ -141,89 +138,91 @@
     googleCalendarBtn.href = googleCalendarUrl();
   }
 
-  function showCalendarSuggest(show) {
-    if (!calendarSuggest) return;
-    calendarSuggest.classList.toggle('hidden', !show);
-  }
-
+  // Kisi sayisi bos ("Seciniz") baslar; davetli bilerek secer.
   function buildPartySizeOptions(selectedValue) {
     partySizeSelect.replaceChildren();
+    const empty = document.createElement('option');
+    empty.value = '';
+    empty.textContent = I18N.partySizeSelect;
+    partySizeSelect.appendChild(empty);
     for (let i = 1; i <= MAX_PARTY_SIZE; i += 1) {
       const opt = document.createElement('option');
       opt.value = String(i);
-      opt.textContent = personCountLabel(i);
-      if (i === selectedValue) opt.selected = true;
+      opt.textContent = i === 1 ? I18N.personCountOne : I18N.personCount.replace('{{n}}', String(i));
       partySizeSelect.appendChild(opt);
     }
+    partySizeSelect.value = selectedValue >= 1 && selectedValue <= MAX_PARTY_SIZE ? String(selectedValue) : '';
   }
 
-  function setDeclineMode(decline) {
-    if (decline) {
-      if (!notAttendingInput.checked) {
-        savedPartySize = Number(partySizeSelect.value || 1) || 1;
-      }
-      notAttendingInput.checked = true;
-      partySizeSelect.replaceChildren();
-      const opt = document.createElement('option');
-      opt.value = '0';
-      opt.textContent = I18N.personCountZero;
-      opt.selected = true;
-      partySizeSelect.appendChild(opt);
-      partySizeSelect.disabled = true;
-      partySizeSelect.required = false;
-      return;
-    }
-    notAttendingInput.checked = false;
-    partySizeSelect.disabled = false;
-    partySizeSelect.required = true;
-    buildPartySizeOptions(savedPartySize);
+  // 'yes' | 'no' | '' (henuz secilmedi)
+  function currentChoice() {
+    const checked = choiceInputs.find((input) => input.checked);
+    return checked ? checked.value : '';
   }
 
-  function isDeclineMode() {
-    return notAttendingInput.checked;
+  // Secime gore: kisi sayisi alani, buton metni ve takvim kutusu.
+  function applyChoice() {
+    const choice = currentChoice();
+    partySizeWrap.hidden = choice !== 'yes';
+    if (calendarSuggest) calendarSuggest.hidden = choice !== 'yes';
+    submitBtn.textContent = choice === 'no' ? I18N.submitDecline : I18N.submit;
+  }
+
+  function setChoice(choice) {
+    choiceInputs.forEach((input) => { input.checked = input.value === choice; });
+    applyChoice();
   }
 
   function showError(msg) {
     rsvpError.textContent = msg;
     rsvpError.classList.remove('hidden');
     rsvpSuccess.classList.add('hidden');
+    rsvpError.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
   function showSuccess(msg) {
     rsvpSuccess.textContent = msg;
     rsvpSuccess.classList.remove('hidden');
     rsvpError.classList.add('hidden');
+    rsvpSuccess.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
   function clearMessages() {
     rsvpError.classList.add('hidden');
     rsvpSuccess.classList.add('hidden');
   }
 
-  function updateCalendarVisibility(decline) {
-    showCalendarSuggest(!decline);
-  }
-
+  const initialSize = Number(INITIAL_GUEST.party_size || 0);
+  buildPartySizeOptions(initialSize);
   if (Number(INITIAL_GUEST.status) === 3) {
-    setDeclineMode(true);
-    showCalendarSuggest(false);
+    setChoice('no');
+  } else if (SHOW_CALENDAR_INIT || initialSize > 0) {
+    setChoice('yes');
   } else {
-    buildPartySizeOptions(savedPartySize);
-    showCalendarSuggest(SHOW_CALENDAR_INIT);
+    setChoice('');
   }
 
-  notAttendingInput.addEventListener('change', () => {
+  choiceInputs.forEach((input) => input.addEventListener('change', () => {
     clearMessages();
-    setDeclineMode(notAttendingInput.checked);
-    updateCalendarVisibility(notAttendingInput.checked);
-  });
+    applyChoice();
+  }));
+  partySizeSelect.addEventListener('change', clearMessages);
 
   rsvpForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearMessages();
-    const guestId = Number(guestIdInput.value || INITIAL_GUEST.id);
-    const decline = isDeclineMode();
+    const choice = currentChoice();
+    if (!choice) {
+      showError(I18N.chooseFirst);
+      return;
+    }
+    const decline = choice === 'no';
     const partySize = decline ? 0 : Number(partySizeSelect.value || 0);
+    if (!decline && !partySize) {
+      showError(I18N.choosePartySize);
+      partySizeSelect.focus();
+      return;
+    }
+    const guestId = Number(guestIdInput.value || INITIAL_GUEST.id);
     const note = document.getElementById('rsvpNote').value.trim();
-    const submitBtn = document.getElementById('rsvpSubmit');
     submitBtn.disabled = true;
     submitBtn.textContent = I18N.saving;
     try {
@@ -243,22 +242,19 @@
         showError(data.message || I18N.saveFailed);
         return;
       }
-      showSuccess(data.message || (decline ? I18N.declineSaved : I18N.attendanceSaved));
       if (data.guest?.name) selectedGuestName.textContent = data.guest.name;
       if (Number(data.guest?.status) === 3 || Number(data.guest?.party_size) === 0) {
-        setDeclineMode(true);
-        showCalendarSuggest(false);
+        setChoice('no');
       } else if (data.guest) {
-        savedPartySize = Number(data.guest.party_size || 1);
-        setDeclineMode(false);
-        showCalendarSuggest(true);
+        buildPartySizeOptions(Number(data.guest.party_size || 0));
+        setChoice('yes');
       }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      showSuccess(data.message || (decline ? I18N.declineSaved : I18N.attendanceSaved));
     } catch (err) {
       showError(I18N.connectionError);
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = I18N.submit;
+      applyChoice();
     }
   });
   </script>

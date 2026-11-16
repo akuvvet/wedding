@@ -1,0 +1,6 @@
+<%# Dil secimi: ?lang=xx ayni sayfayi o dilde acar ve secimi cerezde saklar. %>
+<span class="panel-lang<%= typeof dark !== 'undefined' && dark ? ' is-dark' : '' %>" role="group" aria-label="<%= t('panel.common.language') %>">
+  <% ['tr', 'de', 'en'].forEach((code) => { %>
+  <a href="?lang=<%= code %>" lang="<%= code %>" title="<%= t('lang.' + code) %>" class="panel-lang-btn<%= locale === code ? ' is-active' : '' %>"<%- locale === code ? ' aria-current="true"' : '' %>><%= code.toUpperCase() %></a>
+  <% }) %>
+</span>

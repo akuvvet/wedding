@@ -11,7 +11,7 @@ dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
-const SALON_CAPACITY = Number(process.env.SALON_CAPACITY || 900);
+let SALON_CAPACITY = Number(process.env.SALON_CAPACITY || 900);
 const LIMITED_USER_USERNAME = "enis";
 const VIEWER_USERNAME = "izleyici";
 
@@ -33,6 +33,11 @@ app.use(
     }
   })
 );
+
+// Sablonlar alt klasorlu kopyalarla (anil, yunus) ortak oldugu icin basePath her zaman tanimli olmali.
+app.locals.basePath = "";
+// Panel ve davetiye sayfalari ayni dil secimini kullanir (?lang=tr|de|en, cerezde saklanir).
+app.use(guestLocaleMiddleware);
 
 function isViewer(req) {
   return req.session?.user?.role === "viewer";
@@ -72,7 +77,7 @@ function normalizeRole(role) {
 function requireLogin(req, res, next) {
   if (req.session.user) return next();
   if (req.originalUrl.startsWith("/api")) {
-    return res.status(401).json({ success: false, message: "Yetkisiz erisim." });
+    return res.status(401).json({ success: false, message: req.t("panel.api.unauthorized") });
   }
   return res.redirect("/login");
 }
@@ -80,13 +85,13 @@ function requireLogin(req, res, next) {
 function requireEditor(req, res, next) {
   if (!req.session.user) {
     if (req.originalUrl.startsWith("/api")) {
-      return res.status(401).json({ success: false, message: "Yetkisiz erisim." });
+      return res.status(401).json({ success: false, message: req.t("panel.api.unauthorized") });
     }
     return res.redirect("/login");
   }
   if (isViewer(req)) {
     if (req.originalUrl.startsWith("/api")) {
-      return res.status(403).json({ success: false, message: "Salt okunur hesap: degisiklik yapilamaz." });
+      return res.status(403).json({ success: false, message: req.t("panel.api.readOnly") });
     }
     return res.redirect(viewerHome());
   }
@@ -125,7 +130,7 @@ function buildWeddingIcs(locale = "tr") {
   const { title, description, date, start, end, timezone } = calendar;
   const uid = `wedding-${date}@davetiye`;
   const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
-  const prodLang = locale === "de" ? "DE" : "TR";
+  const prodLang = String(locale || "tr").toUpperCase();
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -274,6 +279,20 @@ async function ensureGunAkisiTable() {
   }
 }
 
+// Kapasite liste sayfasindan degistirilebilir; son verilen deger app_settings tablosunda saklanir.
+async function ensureCapacitySetting() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      name VARCHAR(64) NOT NULL PRIMARY KEY,
+      value VARCHAR(255) NOT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
+  const [rows] = await pool.query("SELECT value FROM app_settings WHERE name = 'salon_capacity' LIMIT 1");
+  const saved = rows[0] ? Number(rows[0].value) : NaN;
+  if (Number.isInteger(saved) && saved > 0) SALON_CAPACITY = saved;
+}
+
 async function ensureSeedUsers() {
   const limitedUserPasswordHash = await bcrypt.hash("password", 10);
   const viewerPasswordHash = await bcrypt.hash("password", 10);
@@ -347,7 +366,7 @@ app.get("/login", (req, res) => {
 app.post("/login", async (req, res) => {
   const username = String(req.body.username || "").trim();
   const password = String(req.body.password || "");
-  if (!username || !password) return res.render("login", { error: "Kullanici adi ve sifre zorunludur." });
+  if (!username || !password) return res.render("login", { error: req.t("panel.api.loginRequired") });
   const validFallback = username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD;
 
   try {
@@ -358,7 +377,7 @@ app.post("/login", async (req, res) => {
       const normalizedHash = user.password_hash.replace(/^\$2y\$/, "$2b$");
       validHash = await bcrypt.compare(password, normalizedHash);
     }
-    if (!validHash && !validFallback) return res.render("login", { error: "Giris bilgileri hatali." });
+    if (!validHash && !validFallback) return res.render("login", { error: req.t("panel.api.loginInvalid") });
     let userId = user ? Number(user.id) : 0;
     if (!userId && validFallback) {
       const fallbackHash = await bcrypt.hash(password, 10);
@@ -380,7 +399,7 @@ app.post("/login", async (req, res) => {
     };
     res.redirect(role === "viewer" ? viewerHome() : "/");
   } catch (err) {
-    res.status(500).render("login", { error: "Sunucu hatasi: " + err.message });
+    res.status(500).render("login", { error: req.t("panel.api.serverError", { msg: err.message }) });
   }
 });
 
@@ -400,8 +419,8 @@ app.post("/", requireEditor, async (req, res) => {
   const email = String(req.body.email || "").trim();
   const city = String(req.body.city || "").trim();
   const status = Number(req.body.status || 2);
-  if (!name) return res.render("index", { ok: false, error: "Ad Soyad zorunludur.", username: req.session.user.username });
-  if (![1, 2, 3].includes(status)) return res.render("index", { ok: false, error: "Gecersiz status secimi.", username: req.session.user.username });
+  if (!name) return res.render("index", { ok: false, error: req.t("panel.api.nameRequired"), username: req.session.user.username });
+  if (![1, 2, 3].includes(status)) return res.render("index", { ok: false, error: req.t("panel.api.invalidStatus"), username: req.session.user.username });
 
   try {
     const userId = await resolveCurrentUserId(req);
@@ -417,7 +436,7 @@ app.post("/", requireEditor, async (req, res) => {
     ]);
     res.redirect("/?ok=1");
   } catch (err) {
-    res.status(500).render("index", { ok: false, error: "Kayit hatasi: " + err.message, username: req.session.user.username });
+    res.status(500).render("index", { ok: false, error: req.t("panel.api.saveError", { msg: err.message }), username: req.session.user.username });
   }
 });
 
@@ -432,7 +451,7 @@ app.get("/gun-akisi", requireLogin, async (req, res) => {
       readOnly: isViewer(req)
     });
   } catch (err) {
-    res.status(500).send("Sunucu hatasi: " + err.message);
+    res.status(500).send(req.t("panel.api.serverError", { msg: err.message }));
   }
 });
 
@@ -449,7 +468,7 @@ app.post("/gun-akisi", requireEditor, async (req, res) => {
     return res.status(422).render("gun-akisi", {
       entries,
       ok: false,
-      error: "Tarih, baslangic/bitis saati ve aksiyon zorunludur.",
+      error: req.t("panel.api.flowRequired"),
       username: req.session.user.username,
       readOnly: false
     });
@@ -459,7 +478,7 @@ app.post("/gun-akisi", requireEditor, async (req, res) => {
     return res.status(422).render("gun-akisi", {
       entries,
       ok: false,
-      error: "Bitis saati baslangic saatinden once olamaz.",
+      error: req.t("panel.api.flowOrder"),
       username: req.session.user.username,
       readOnly: false
     });
@@ -476,7 +495,7 @@ app.post("/gun-akisi", requireEditor, async (req, res) => {
     res.status(500).render("gun-akisi", {
       entries,
       ok: false,
-      error: "Kayit hatasi: " + err.message,
+      error: req.t("panel.api.saveError", { msg: err.message }),
       username: req.session.user.username,
       readOnly: false
     });
@@ -493,10 +512,10 @@ app.post("/api/gun-akisi/:id", requireEditor, async (req, res) => {
   const sahis = String(req.body.sahis || "").trim();
 
   if (!id || !tarih || !saatBaslangic || !saatBitis || !aksiyon) {
-    return res.status(422).json({ success: false, message: "Gecersiz veri." });
+    return res.status(422).json({ success: false, message: req.t("panel.api.invalidData") });
   }
   if (!isValidSaatRange(saatBaslangic, saatBitis)) {
-    return res.status(422).json({ success: false, message: "Bitis saati baslangic saatinden once olamaz." });
+    return res.status(422).json({ success: false, message: req.t("panel.api.flowOrder") });
   }
 
   try {
@@ -505,28 +524,28 @@ app.post("/api/gun-akisi/:id", requireEditor, async (req, res) => {
       [tarih, saatBaslangic, saatBitis, aksiyon, aciklama || null, sahis || null, id]
     );
     if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: "Kayit bulunamadi." });
+      return res.status(404).json({ success: false, message: req.t("panel.api.notFound") });
     }
     return res.json({ success: true });
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Sunucu hatasi: " + err.message });
+    return res.status(500).json({ success: false, message: req.t("panel.api.serverError", { msg: err.message }) });
   }
 });
 
 app.delete("/api/gun-akisi/:id", requireEditor, async (req, res) => {
   const id = Number(req.params.id || 0);
   if (!id) {
-    return res.status(422).json({ success: false, message: "Gecersiz veri." });
+    return res.status(422).json({ success: false, message: req.t("panel.api.invalidData") });
   }
 
   try {
     const [result] = await pool.query("DELETE FROM gun_akisi WHERE id = ?", [id]);
     if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: "Kayit bulunamadi." });
+      return res.status(404).json({ success: false, message: req.t("panel.api.notFound") });
     }
     return res.json({ success: true });
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Sunucu hatasi: " + err.message });
+    return res.status(500).json({ success: false, message: req.t("panel.api.serverError", { msg: err.message }) });
   }
 });
 
@@ -582,7 +601,7 @@ app.get("/list", requireLogin, async (req, res) => {
       baseUrl
     });
   } catch (err) {
-    res.status(500).send("Sunucu hatasi: " + err.message);
+    res.status(500).send(req.t("panel.api.serverError", { msg: err.message }));
   }
 });
 
@@ -638,7 +657,7 @@ app.get("/api/rsvp/names", async (req, res) => {
     const matches = findMatchingGuests(query, guests);
     return res.json({ success: true, matches });
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Sunucu hatasi: " + err.message });
+    return res.status(500).json({ success: false, message: req.t("panel.api.serverError", { msg: err.message }) });
   }
 });
 
@@ -696,22 +715,43 @@ app.post("/api/rsvp/:token", guestLocaleMiddleware, async (req, res) => {
 
 app.use(express.static(path.join(__dirname, "public")));
 
+app.post("/api/capacity", requireEditor, async (req, res) => {
+  if (!isAdmin(req)) {
+    return res.status(403).json({ success: false, message: req.t("panel.api.capacityAdminOnly") });
+  }
+  const capacity = Number(req.body.capacity);
+  if (!Number.isInteger(capacity) || capacity < 1 || capacity > 100000) {
+    return res.status(422).json({ success: false, message: req.t("panel.api.capacityRange") });
+  }
+  try {
+    await pool.query(
+      "INSERT INTO app_settings (name, value) VALUES ('salon_capacity', ?) ON DUPLICATE KEY UPDATE value = VALUES(value)",
+      [String(capacity)]
+    );
+    SALON_CAPACITY = capacity;
+    const stats = await fetchGuestStats();
+    return res.json({ success: true, capacity, stats: statsPayload(stats) });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: req.t("panel.api.serverError", { msg: err.message }) });
+  }
+});
+
 app.post("/api/update", requireEditor, async (req, res) => {
   const id = Number(req.body.id || 0);
   const status = Number(req.body.status || 0);
   if (!id || ![1, 2, 3].includes(status)) {
-    return res.status(422).json({ success: false, message: "Gecersiz veri." });
+    return res.status(422).json({ success: false, message: req.t("panel.api.invalidData") });
   }
 
   try {
     const [rows] = await pool.query("SELECT user_id FROM guests WHERE id = ? LIMIT 1", [id]);
     const guest = rows[0];
     if (!guest) {
-      return res.status(404).json({ success: false, message: "Kayit bulunamadi." });
+      return res.status(404).json({ success: false, message: req.t("panel.api.notFound") });
     }
     const guestUserId = guest.user_id == null ? null : Number(guest.user_id);
     if (!canManageGuest(req, guestUserId)) {
-      return res.status(403).json({ success: false, message: "Bu kaydi guncelleme yetkiniz yok." });
+      return res.status(403).json({ success: false, message: req.t("panel.api.noUpdatePermission") });
     }
     await pool.query("UPDATE guests SET status = ? WHERE id = ?", [status, id]);
     const stats = await fetchGuestStats();
@@ -720,7 +760,7 @@ app.post("/api/update", requireEditor, async (req, res) => {
       stats: statsPayload(stats)
     });
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Sunucu hatasi: " + err.message });
+    return res.status(500).json({ success: false, message: req.t("panel.api.serverError", { msg: err.message }) });
   }
 });
 
@@ -745,18 +785,18 @@ async function handleGuestSave(req, res) {
   const city = String(req.body.city || "").trim();
   const status = Number(req.body.status || 0);
   if (!id || !name || ![1, 2, 3].includes(status)) {
-    return res.status(422).json({ success: false, message: "Gecersiz veri." });
+    return res.status(422).json({ success: false, message: req.t("panel.api.invalidData") });
   }
 
   try {
     const [rows] = await pool.query("SELECT user_id FROM guests WHERE id = ? LIMIT 1", [id]);
     const guest = rows[0];
     if (!guest) {
-      return res.status(404).json({ success: false, message: "Kayit bulunamadi." });
+      return res.status(404).json({ success: false, message: req.t("panel.api.notFound") });
     }
     const guestUserId = guest.user_id == null ? null : Number(guest.user_id);
     if (!canManageGuest(req, guestUserId)) {
-      return res.status(403).json({ success: false, message: "Bu kaydi guncelleme yetkiniz yok." });
+      return res.status(403).json({ success: false, message: req.t("panel.api.noUpdatePermission") });
     }
     const userId = await resolveCurrentUserId(req);
     const ownerId = guest.user_id != null ? Number(guest.user_id) : userId;
@@ -772,7 +812,7 @@ async function handleGuestSave(req, res) {
     const stats = await fetchGuestStats();
     return res.json({ success: true, stats: statsPayload(stats) });
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Sunucu hatasi: " + err.message });
+    return res.status(500).json({ success: false, message: req.t("panel.api.serverError", { msg: err.message }) });
   }
 }
 
@@ -783,30 +823,30 @@ app.delete("/api/guest/:id", requireEditor, async (req, res) => {
   const id = Number(req.params.id || 0);
   const currentUserId = Number(await resolveCurrentUserId(req) || 0);
   if (!id) {
-    return res.status(422).json({ success: false, message: "Gecersiz veri." });
+    return res.status(422).json({ success: false, message: req.t("panel.api.invalidData") });
   }
 
   try {
     const [rows] = await pool.query("SELECT user_id FROM guests WHERE id = ? LIMIT 1", [id]);
     const guest = rows[0];
     if (!guest) {
-      return res.status(404).json({ success: false, message: "Kayit bulunamadi." });
+      return res.status(404).json({ success: false, message: req.t("panel.api.notFound") });
     }
     const guestUserId = guest.user_id == null ? null : Number(guest.user_id);
     const canDelete = canManageGuest(req, guestUserId);
     if (!canDelete) {
-      return res.status(403).json({ success: false, message: "Bu kaydi silme yetkiniz yok." });
+      return res.status(403).json({ success: false, message: req.t("panel.api.noDeletePermission") });
     }
 
     await pool.query("DELETE FROM guests WHERE id = ?", [id]);
     const stats = await fetchGuestStats();
     return res.json({ success: true, stats: statsPayload(stats) });
   } catch (err) {
-    return res.status(500).json({ success: false, message: "Sunucu hatasi: " + err.message });
+    return res.status(500).json({ success: false, message: req.t("panel.api.serverError", { msg: err.message }) });
   }
 });
 
-Promise.all([ensureSeedUsers(), ensureGunAkisiTable(), ensureGuestRsvpColumns()])
+Promise.all([ensureSeedUsers(), ensureGunAkisiTable(), ensureGuestRsvpColumns(), ensureCapacitySetting()])
   .catch((err) => {
     console.error("Baslangic kurulum hatasi:", err.message);
   })

@@ -1,582 +1,936 @@
 <!doctype html>
-<html lang="tr">
+<html lang="<%= locale %>">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Davetli Listesi</title>
+  <title><%= t('panel.list.title') %></title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="<%= typeof basePath !== 'undefined' ? basePath : '' %>/style.css">
 </head>
 <body class="min-h-screen bg-slate-100">
-  <% const filterUsersList = typeof filterUsers !== 'undefined' ? filterUsers : []; %>
-  <% const filterCitiesList = typeof filterCities !== 'undefined' ? filterCities : []; %>
-  <% const hasUnassignedGuestsFlag = typeof hasUnassignedGuests !== 'undefined' ? hasUnassignedGuests : false; %>
-  <% const hasEmptyCityGuestsFlag = typeof hasEmptyCityGuests !== 'undefined' ? hasEmptyCityGuests : false; %>
+  <%
+    const viewerMode = !!readOnly;
+    const T = (k, v) => t('panel.' + k, v);
+    const dateLocale = { de: 'de-DE', tr: 'tr-TR', en: 'en-GB' }[locale] || 'tr-TR';
+    const meId = Number(typeof currentUserId !== "undefined" ? currentUserId || 0 : 0);
+    const adminMode = typeof isAdmin !== "undefined" && !!isAdmin;
+    const base = typeof baseUrl !== "undefined" ? baseUrl : "";
+    // Telefon / e-posta yalnizca kaydi yonetebilen kullaniciya gonderilir.
+    const guestData = guests.map((g) => {
+      const uid = g.user_id == null ? null : Number(g.user_id);
+      const can = !viewerMode && (adminMode || (uid !== null && uid === meId));
+      return {
+        id: Number(g.id),
+        name: g.name || "",
+        phone: can ? g.phone || "" : "",
+        email: can ? g.email || "" : "",
+        city: String(g.city || "").trim(),
+        status: Number(g.status),
+        uid,
+        owner: g.kullanici || "",
+        party: g.party_size == null ? null : Number(g.party_size),
+        rsvp: !!g.rsvp_at,
+        rsvpAt: g.rsvp_at || null,
+        note: g.rsvp_note || "",
+        url: g.invite_token ? `${base}/davet/${g.invite_token}` : "",
+        can
+      };
+    });
+    const safeJson = (v) =>
+      JSON.stringify(v).replace(/</g, "\\u003c").split(String.fromCharCode(0x2028)).join("\\u2028").split(String.fromCharCode(0x2029)).join("\\u2029");
+  %>
   <%- include('partials/nav', { username, readOnly }) %>
 
-  <main class="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
-    <section class="stats-grid grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2 sm:gap-3">
-      <div class="stats-card stats-card-emerald col-span-2 md:col-span-1 rounded-lg sm:rounded-xl bg-emerald-600 text-white p-2 sm:p-2.5">
-        <p class="text-[11px] sm:text-xs leading-tight">Kesin Gelecekler (1)</p>
-        <p class="text-lg sm:text-xl font-bold leading-none mt-0.5" id="count-1"><%= stats.count1 %></p>
-        <p class="text-[10px] sm:text-xs mt-1 text-emerald-100 leading-tight">LCV onayi</p>
-        <p class="text-sm sm:text-base font-bold leading-tight" id="confirmed-guests-ratio"><%= Number(stats.confirmedGuestCount || 0) %> / <%= stats.count1 %> onayladi</p>
-        <p class="text-[10px] sm:text-xs mt-0.5 text-emerald-100 leading-tight" id="confirmed-persons"><%= Number(stats.confirmedPersons || 0) %> kisi gelecek</p>
-        <p class="text-[10px] sm:text-xs mt-1 text-emerald-100 leading-tight">LCV katilmayan (0 kisi)</p>
-        <p class="text-sm sm:text-base font-bold leading-none" id="declined-rsvp-count"><%= Number(stats.declinedRsvpCount || 0) %></p>
+  <main class="gl-page">
+    <header class="gl-head">
+      <div>
+        <h1 class="gl-title"><%= T('list.title') %></h1>
+        <p class="gl-sub" id="glHeadSub"></p>
       </div>
-      <div class="stats-card rounded-lg sm:rounded-xl bg-amber-500 text-white p-2 sm:p-2.5"><p class="text-[11px] sm:text-xs leading-tight">Belirsizler (2)</p><p class="text-lg sm:text-xl font-bold leading-none mt-0.5" id="count-2"><%= stats.count2 %></p></div>
-      <div class="stats-card rounded-lg sm:rounded-xl bg-rose-600 text-white p-2 sm:p-2.5"><p class="text-[11px] sm:text-xs leading-tight">Elenenler / Yedekler (3)</p><p class="text-lg sm:text-xl font-bold leading-none mt-0.5" id="count-3"><%= stats.count3 %></p></div>
-      <div class="stats-card rounded-lg sm:rounded-xl bg-slate-800 text-white p-2 sm:p-2.5"><p class="text-[11px] sm:text-xs leading-tight">Toplam Davetli</p><p class="text-lg sm:text-xl font-bold leading-none mt-0.5" id="total-guests"><%= stats.totalGuests %></p></div>
-      <div class="stats-card rounded-lg sm:rounded-xl bg-indigo-700 text-white p-2 sm:p-2.5 md:col-span-2 xl:col-span-1"><p class="text-[11px] sm:text-xs leading-tight">Kapasite / Doluluk</p><p class="text-xs sm:text-sm leading-tight mt-0.5"><%= stats.capacity %> kisi</p><p class="text-base sm:text-lg font-bold leading-none mt-0.5" id="occupancy-rate"><%= stats.occupancyRate %>%</p></div>
+      <div class="gl-head-actions">
+        <button type="button" class="gl-btn" id="glExport" title="<%= T('list.exportTitle') %>"><%= T('list.exportBtn') %></button>
+        <% if (adminMode) { %>
+        <label class="gl-capacity" title="<%= T('list.capacityTitle') %>">
+          <span><%= T('list.capacity') %></span>
+          <input type="number" id="glCapacity" min="1" max="100000" step="1" inputmode="numeric" aria-label="<%= T('list.capacityAria') %>">
+        </label>
+        <% } %>
+        <% if (!viewerMode) { %>
+        <span class="gl-tipwrap">
+          <button type="button" class="gl-btn" id="glImportBtn" aria-describedby="glImportTip"><%= T('list.importBtn') %></button>
+          <span class="gl-tip" id="glImportTip" role="tooltip">
+            <b><%= T('list.tipTitle') %></b>
+            <%= T('list.tipIntro') %>
+            <code class="gl-tip-code"><%= T('list.tipExample') %></code>
+            <%= T('list.tipNote') %>
+          </span>
+        </span>
+        <input type="file" id="glImportFile" accept=".csv,text/csv,text/plain" hidden>
+        <a class="gl-btn gl-btn-primary" id="glAdd" href="<%= typeof basePath !== 'undefined' ? basePath : '' %>/"><%= T('list.addBtn') %></a>
+        <% } %>
+      </div>
+    </header>
+
+    <section class="gl-kpis" aria-label="<%= T('list.summaryAria') %>">
+      <article class="gl-kpi">
+        <p class="gl-kpi-label"><%= T('list.kpiTotal') %></p>
+        <p class="gl-kpi-value" id="kpiTotal">0</p>
+        <div class="gl-stack" aria-hidden="true">
+          <span class="gl-stack-seg s1" id="kpiSeg1"></span><span class="gl-stack-seg s2" id="kpiSeg2"></span><span class="gl-stack-seg s3" id="kpiSeg3"></span>
+        </div>
+        <p class="gl-kpi-foot">
+          <span><i class="gl-dot s1"></i><%= T('common.status1') %> <b id="kpiC1">0</b></span>
+          <span><i class="gl-dot s2"></i><%= T('common.status2') %> <b id="kpiC2">0</b></span>
+          <span><i class="gl-dot s3"></i><%= T('common.status3') %> <b id="kpiC3">0</b></span>
+        </p>
+      </article>
+
+      <article class="gl-kpi">
+        <p class="gl-kpi-label"><%= T('list.kpiRsvp') %></p>
+        <p class="gl-kpi-value"><span id="kpiConfirmed">0</span><small> / <span id="kpiConfirmedOf">0</span> <%= T('list.kpiRsvpOf') %></small></p>
+        <div class="gl-bar" aria-hidden="true"><span class="gl-bar-fill s1" id="kpiConfirmedBar"></span></div>
+        <p class="gl-kpi-foot">
+          <span><%= T('list.declined') %> <b id="kpiDeclined">0</b></span>
+          <button type="button" class="gl-link" id="kpiWaitingBtn" title="<%= T('list.waitingTitle') %>"><%= T('list.waiting') %> <b id="kpiWaiting">0</b> &rarr;</button>
+        </p>
+      </article>
+
+      <article class="gl-kpi">
+        <p class="gl-kpi-label"><%= T('list.kpiPersons') %></p>
+        <p class="gl-kpi-value"><span id="kpiPersons">0</span><small> / <span id="kpiCapacity">0</span> <%= T('list.capacityWord') %></small></p>
+        <div class="gl-bar" aria-hidden="true"><span class="gl-bar-fill ind" id="kpiPersonsBar"></span></div>
+        <p class="gl-kpi-foot"><span><%= T('list.kpiPersonsFoot') %></span></p>
+      </article>
+
+      <article class="gl-kpi">
+        <p class="gl-kpi-label"><%= T('list.kpiOccupancy') %></p>
+        <p class="gl-kpi-value"><span id="kpiOccupancy">0</span><small>%</small></p>
+        <div class="gl-bar" aria-hidden="true"><span class="gl-bar-fill s2" id="kpiOccupancyBar"></span></div>
+        <p class="gl-kpi-foot"><span><%= T('list.kpiOccupancyFoot') %></span></p>
+      </article>
     </section>
 
-    <section class="bg-white rounded-2xl overflow-hidden border">
-      <div class="p-4 border-b flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 class="text-lg font-semibold">Davetli Listesi</h1>
-        <div class="flex flex-col sm:flex-row sm:items-center gap-2 ml-auto w-full sm:w-auto">
-          <label class="flex items-center gap-2 text-sm text-slate-600 shrink-0">
-            <span class="whitespace-nowrap font-medium">Kullanici</span>
-            <select id="userFilter" class="table-filter-select rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm min-w-[9rem] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none">
-              <option value="">Tumu</option>
-              <% if (hasUnassignedGuestsFlag) { %><option value="__none__">—</option><% } %>
-              <% for (const u of filterUsersList) { %><option value="<%= u.id %>"><%= u.username %></option><% } %>
-            </select>
-            <span id="filteredGuestCount" class="text-slate-500 text-sm tabular-nums whitespace-nowrap" title="Filtreye uyan satir / tablodaki tum satirlar"></span>
-          </label>
-          <label class="flex items-center gap-2 text-sm text-slate-600 shrink-0">
-            <span class="whitespace-nowrap font-medium">Sehir</span>
-            <select id="cityFilter" class="table-filter-select rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm min-w-[9rem] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none">
-              <option value="">Tumu</option>
-              <% if (hasEmptyCityGuestsFlag) { %><option value="__none__">—</option><% } %>
-              <% for (const c of filterCitiesList) { %><option value="<%= c.city %>"><%= c.city %></option><% } %>
-            </select>
-          </label>
-          <div class="table-search w-full sm:w-auto">
-            <input type="search" id="tableSearch" class="table-search-input" placeholder="Tabloda ara..." autocomplete="off" spellcheck="false">
-            <button type="button" id="tableSearchClear" class="table-search-clear" aria-label="Aramayi temizle" title="Temizle">
-              <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-width="2" fill="none" d="m3 3 8 8M11 3l-8 8"/></svg>
-            </button>
-          </div>
+    <section class="gl-panel">
+      <div class="gl-toolbar">
+        <div class="gl-search">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m10.5 10.5 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <input type="search" id="glSearch" placeholder="<%= T('list.searchPlaceholder') %>" autocomplete="off" spellcheck="false" aria-label="<%= T('list.searchAria') %>">
+        </div>
+        <label class="gl-select">
+          <span><%= T('common.user') %></span>
+          <select id="glUser"></select>
+        </label>
+        <label class="gl-select">
+          <span><%= T('common.city') %></span>
+          <select id="glCity"></select>
+        </label>
+        <button type="button" class="gl-btn gl-btn-ghost" id="glReset" hidden><%= T('common.resetFilters') %></button>
+      </div>
+
+      <div class="gl-chiprow">
+        <div class="gl-chips" role="group" aria-label="<%= T('list.statusFilterAria') %>">
+          <span class="gl-chips-label"><%= T('common.status') %></span>
+          <button type="button" class="gl-chip" data-filter="status" data-value=""><%= T('common.all') %></button>
+          <button type="button" class="gl-chip s1" data-filter="status" data-value="1"><%= T('common.status1') %> <b data-count="status-1"></b></button>
+          <button type="button" class="gl-chip s2" data-filter="status" data-value="2"><%= T('common.status2') %> <b data-count="status-2"></b></button>
+          <button type="button" class="gl-chip s3" data-filter="status" data-value="3"><%= T('common.status3') %> <b data-count="status-3"></b></button>
+        </div>
+        <div class="gl-chips" role="group" aria-label="<%= T('list.rsvpFilterAria') %>">
+          <span class="gl-chips-label"><%= T('list.rsvpLabel') %></span>
+          <button type="button" class="gl-chip" data-filter="rsvp" data-value=""><%= T('common.all') %></button>
+          <button type="button" class="gl-chip s1" data-filter="rsvp" data-value="yes"><%= T('list.rsvpYes') %> <b data-count="rsvp-yes"></b></button>
+          <button type="button" class="gl-chip s3" data-filter="rsvp" data-value="no"><%= T('list.rsvpNo') %> <b data-count="rsvp-no"></b></button>
+          <button type="button" class="gl-chip" data-filter="rsvp" data-value="wait"><%= T('list.rsvpWait') %> <b data-count="rsvp-wait"></b></button>
         </div>
       </div>
-      <div id="tableWrap" class="guest-table-scroll">
-        <table class="min-w-full text-sm">
-          <thead class="bg-slate-50"><tr><th class="px-4 py-3 text-left" title="Isme gore siralama"><button type="button" class="sort-btn inline-flex items-center gap-1 font-semibold text-left text-slate-800 hover:text-indigo-700" data-sort-key="name" aria-label="Ad Soyad sirala">Ad Soyad <span class="sort-indicator text-slate-400" aria-hidden="true">A-Z</span></button></th><% if (!readOnly) { %><th class="px-4 py-3 text-left">Telefon</th><th class="px-4 py-3 text-left guest-col-email">Email</th><% } %><th class="px-4 py-3 text-left" title="Sehire gore siralama"><button type="button" class="sort-btn inline-flex items-center gap-1 font-semibold text-left text-slate-800 hover:text-indigo-700" data-sort-key="city" aria-label="Sehir sirala">Sehir <span class="sort-indicator text-slate-400" aria-hidden="true"></span></button></th><th class="px-4 py-3 text-left" title="Statusa gore siralama"><button type="button" class="sort-btn inline-flex items-center gap-1 font-semibold text-left text-slate-800 hover:text-indigo-700" data-sort-key="status" aria-label="Status sirala">Status <span class="sort-indicator text-slate-400" aria-hidden="true"></span></button></th><th class="px-4 py-3 text-left" title="Kisi sayisina gore siralama"><button type="button" class="sort-btn inline-flex items-center gap-1 font-semibold text-left text-slate-800 hover:text-indigo-700" data-sort-key="party" aria-label="Kisi sirala">Kisi <span class="sort-indicator text-slate-400" aria-hidden="true"></span></button></th><th class="px-4 py-3 text-left">LCV Notu</th><th class="px-4 py-3 text-left">Davet Linki</th><th class="px-4 py-3 text-left">Kullanici</th><% if (!readOnly) { %><th class="px-4 py-3 text-left whitespace-nowrap">Islem</th><% } %></tr></thead>
-          <tbody>
-            <% for (const g of guests) {
-              const guestUserId = g.user_id == null ? null : Number(g.user_id);
-              const ownsGuest = guestUserId !== null && guestUserId === currentUserId;
-              const canManage = isAdmin || ownsGuest;
-              const canSeeContact = isAdmin || ownsGuest;
-            %>
-            <% const partySizeVal = g.party_size; const hasRsvp = !!g.rsvp_at; const isRsvpDeclined = hasRsvp && Number(partySizeVal) === 0; %>
-            <tr class="border-t guest-row<%= isRsvpDeclined ? ' guest-row-rsvp-declined' : '' %>" data-id="<%= g.id %>" data-name="<%= g.name %>"<% if (canSeeContact) { %> data-phone="<%= g.phone || "" %>" data-email="<%= g.email || "" %>"<% } %> data-city="<%= g.city || "" %>" data-status="<%= g.status %>" data-user-id="<%= g.user_id == null ? "" : g.user_id %>" data-can-manage="<%= canManage ? "1" : "0" %>" data-party-size="<%= partySizeVal != null ? partySizeVal : "" %>" data-rsvp="<%= hasRsvp ? "1" : "0" %>">
-              <td class="px-4 py-3 font-medium guest-cell-name"><%= g.name %></td>
-              <% if (!readOnly) { %><td class="px-4 py-3 guest-cell-phone text-slate-500"><%= canSeeContact ? (g.phone || "") : "—" %></td><td class="px-4 py-3 guest-cell-email text-slate-500" title="<%= canSeeContact ? (g.email || "") : "" %>"><%= canSeeContact ? (g.email || "") : "—" %></td><% } %>
-              <td class="px-4 py-3 guest-cell-city"><%= g.city || "" %></td>
-              <td class="px-4 py-3 guest-cell-status align-top">
-                <% if (readOnly || !canManage) { %>
-                <span class="inline-block text-xs font-medium px-2 py-1 rounded status-badge status-<%= g.status %>"><%= g.status %> - <%= g.status === 1 ? "Mutlaka" : (g.status === 2 ? "Olabilir" : "Gerek Yok") %></span>
-                <% } else { %>
-                <div class="status-control">
-                  <button type="button" class="status-btn status-<%= g.status %>" data-id="<%= g.id %>" data-status="<%= g.status %>" aria-label="Status: <%= g.status === 1 ? "Mutlaka" : (g.status === 2 ? "Olabilir" : "Gerek Yok") %>" title="Status degistirmek icin tiklayin"><%= g.status === 1 ? "E" : (g.status === 2 ? "O" : "H") %></button>
-                </div>
-                <% } %>
-              </td>
-              <td class="px-4 py-3 guest-cell-party text-slate-700 whitespace-nowrap">
-                <% if (partySizeVal != null && partySizeVal !== '') { %>
-                  <% if (isRsvpDeclined) { %>
-                  <span class="party-size-declined" title="LCV: Katilamiyor">0</span>
-                  <% } else { %>
-                  <%= partySizeVal %>
-                  <% } %>
-                <% } else { %>—<% } %>
-              </td>
-              <td class="px-4 py-3 guest-cell-rsvp-note text-slate-600 max-w-[12rem] truncate" title="<%= g.rsvp_note || "" %>"><%= g.rsvp_note || "—" %></td>
-              <td class="px-4 py-3 guest-cell-invite align-top">
-                <% if (g.invite_token) { %>
-                <% const inviteUrl = `${typeof baseUrl !== "undefined" ? baseUrl : ""}/davet/${g.invite_token}`; %>
-                <button type="button" class="invite-copy-btn" data-url="<%= inviteUrl %>" title="<%= inviteUrl %>">Link</button>
-                <% } else { %>
-                <span class="text-slate-400 text-xs">—</span>
-                <% } %>
-              </td>
-              <td class="px-4 py-3 guest-cell-kullanici text-slate-600 whitespace-nowrap" title="<%= g.kullanici || "" %>"><%= g.kullanici ? String(g.kullanici).slice(0, 3) : "—" %></td>
-              <% if (!readOnly) { %>
-              <td class="px-4 py-3 guest-cell-actions align-top">
-                <% if (canManage) { %>
-                <div class="guest-actions">
-                  <button type="button" class="guest-edit-btn px-2 py-1 rounded text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700">Duzenle</button>
-                  <button type="button" class="guest-delete-btn px-2 py-1 rounded text-xs font-medium bg-rose-600 text-white hover:bg-rose-700">Sil</button>
-                </div>
-                <% } %>
-              </td>
-              <% } %>
-            </tr>
-            <% } %>
-          </tbody>
-        </table>
+
+      <div class="gl-summary">
+        <p id="glSummary" aria-live="polite"></p>
+        <label class="gl-select gl-sort-select">
+          <span><%= T('common.sort') %></span>
+          <select id="glSortSelect">
+            <option value="name:1"><%= T('list.sortNameAsc') %></option>
+            <option value="name:-1"><%= T('list.sortNameDesc') %></option>
+            <option value="city:1"><%= T('list.sortCityAsc') %></option>
+            <option value="status:1"><%= T('list.sortStatusAsc') %></option>
+            <option value="status:-1"><%= T('list.sortStatusDesc') %></option>
+            <option value="party:-1"><%= T('list.sortPartyDesc') %></option>
+            <option value="party:1"><%= T('list.sortPartyAsc') %></option>
+            <option value="owner:1"><%= T('list.sortOwnerAsc') %></option>
+          </select>
+        </label>
       </div>
-      <div class="guest-table-pagination">
-        <div class="guest-page-nav flex items-center gap-2 flex-wrap">
-          <button type="button" id="pagePrev" class="guest-page-nav-btn" aria-label="Onceki sayfa">Onceki</button>
-          <p id="pageInfo" class="guest-page-info text-sm text-slate-600 tabular-nums"></p>
-          <button type="button" id="pageNext" class="guest-page-nav-btn" aria-label="Sonraki sayfa">Sonraki</button>
+
+      <table class="gl-table">
+        <thead>
+          <tr>
+            <th><button type="button" class="gl-sort" data-sort="name"><%= T('common.name') %><span></span></button></th>
+            <th><button type="button" class="gl-sort" data-sort="city"><%= T('common.city') %><span></span></button></th>
+            <th><button type="button" class="gl-sort" data-sort="status"><%= T('common.status') %><span></span></button></th>
+            <th><button type="button" class="gl-sort" data-sort="party"><%= T('list.colRsvp') %><span></span></button></th>
+            <th><button type="button" class="gl-sort" data-sort="owner"><%= T('common.user') %><span></span></button></th>
+            <th class="gl-th-actions"><%= T('common.actions') %></th>
+          </tr>
+        </thead>
+        <tbody id="glBody"></tbody>
+      </table>
+      <div class="gl-empty" id="glEmpty" hidden>
+        <p><%= T('list.empty') %></p>
+        <button type="button" class="gl-btn" id="glEmptyReset"><%= T('common.resetFilters') %></button>
+      </div>
+
+      <div class="gl-pager">
+        <div class="gl-pager-nav">
+          <button type="button" class="gl-btn" id="glPrev" aria-label="<%= T('list.prevAria') %>">&larr; <%= T('list.prev') %></button>
+          <span id="glPageInfo"></span>
+          <button type="button" class="gl-btn" id="glNext" aria-label="<%= T('list.nextAria') %>"><%= T('list.next') %> &rarr;</button>
         </div>
-        <label class="guest-page-select-label flex items-center gap-2 text-sm text-slate-700">
-          <span class="font-medium whitespace-nowrap">Sayfada</span>
-          <select id="pageSizeSelect" class="guest-page-select rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm min-w-[5rem] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none" aria-label="Sayfa basina kayit sayisi">
-            <option value="10" selected>10</option>
+        <label class="gl-select">
+          <span><%= T('list.perPage') %></span>
+          <select id="glPageSize" aria-label="<%= T('list.perPageAria') %>">
             <option value="25">25</option>
             <option value="50">50</option>
             <option value="100">100</option>
-            <option value="150">150</option>
-            <option value="250">250</option>
-            <option value="500">500</option>
+            <option value="0"><%= T('common.all') %></option>
           </select>
-          <span class="whitespace-nowrap">kayit goster</span>
         </label>
       </div>
     </section>
   </main>
 
+  <% if (!viewerMode) { %>
+  <dialog class="gl-dialog" id="glEdit">
+    <form id="glEditForm" novalidate>
+      <h2 id="glEditTitle"><%= T('list.editTitle') %></h2>
+      <label><%= T('common.name') %><input type="text" name="name" required autocomplete="off"></label>
+      <div class="gl-dialog-grid">
+        <label><%= T('common.phone') %><input type="tel" name="phone" autocomplete="off"></label>
+        <label><%= T('common.city') %><input type="text" name="city" autocomplete="off" list="glCityList"></label>
+      </div>
+      <label><%= T('common.email') %><input type="email" name="email" autocomplete="off"></label>
+      <fieldset>
+        <legend><%= T('common.status') %></legend>
+        <div class="gl-radio">
+          <label class="s1"><input type="radio" name="status" value="1"><span>1 &middot; <%= T('common.status1') %></span></label>
+          <label class="s2"><input type="radio" name="status" value="2"><span>2 &middot; <%= T('common.status2') %></span></label>
+          <label class="s3"><input type="radio" name="status" value="3"><span>3 &middot; <%= T('common.status3') %></span></label>
+        </div>
+      </fieldset>
+      <label class="gl-check" id="glAddMoreWrap" hidden><input type="checkbox" id="glAddMore"><span><%= T('list.addMore') %></span></label>
+      <p class="gl-dialog-error" id="glEditError" hidden></p>
+      <div class="gl-dialog-actions">
+        <button type="button" class="gl-btn" id="glEditCancel"><%= T('common.cancel') %></button>
+        <button type="submit" class="gl-btn gl-btn-primary" id="glEditSave"><%= T('common.save') %></button>
+      </div>
+    </form>
+    <datalist id="glCityList"></datalist>
+  </dialog>
+
+  <dialog class="gl-dialog gl-dialog-wide" id="glImport">
+    <form id="glImportForm" novalidate>
+      <h2><%= T('list.importTitle') %></h2>
+      <p class="gl-import-summary" id="glImportSummary"></p>
+      <div class="gl-import-preview">
+        <table>
+          <thead><tr><th><%= T('common.name') %></th><th><%= T('common.phone') %></th><th><%= T('common.email') %></th><th><%= T('common.city') %></th><th><%= T('common.status') %></th></tr></thead>
+          <tbody id="glImportRows"></tbody>
+        </table>
+      </div>
+      <p class="gl-import-more" id="glImportMore" hidden></p>
+      <label class="gl-check" id="glImportSkipWrap"><input type="checkbox" id="glImportSkip" checked><span><%= T('list.importSkip') %></span></label>
+      <p class="gl-dialog-error" id="glImportError" hidden></p>
+      <div class="gl-dialog-actions">
+        <button type="button" class="gl-btn" id="glImportCancel"><%= T('common.cancel') %></button>
+        <button type="submit" class="gl-btn gl-btn-primary" id="glImportGo"></button>
+      </div>
+    </form>
+  </dialog>
+  <% } %>
+
+  <div class="gl-toast" id="glToast" role="status" aria-live="polite"></div>
+
   <script>
-  const READ_ONLY = <%= readOnly ? 'true' : 'false' %>;
-  const GUEST_API = { prefix: '/api/guest' };
-  const statusTextMap = {1:'Mutlaka',2:'Olabilir',3:'Gerek Yok'};
-  const statusLetterMap = {1:'E',2:'O',3:'H'};
-  const CURRENT_USER_ID = <%= typeof currentUserId !== "undefined" ? Number(currentUserId || 0) : 0 %>;
-  const IS_ADMIN = <%= typeof isAdmin !== "undefined" && isAdmin ? "true" : "false" %>;
-  let editingRow = null;
+  (() => {
+    // Uygulama bir alt klasorde (or. /anil) calisiyorsa tum adresler bu on ekle kurulur.
+    const BASE = <%- safeJson(typeof basePath !== "undefined" ? String(basePath || "") : "") %>;
+    const atPath = (url, p) => url.pathname.replace(/\/+$/, '') === (BASE + p).replace(/\/+$/, '');
+    const GUESTS = <%- safeJson(guestData) %>;
+    const I18N = <%- safeJson(i18n.panel) %>;
+    const LOCALE = <%- safeJson(locale) %>;
+    const DATE_LOCALE = <%- safeJson(dateLocale) %>;
+    // tx('list.saved') -> metin; {{ad}} yer tutuculari vars ile doldurulur.
+    const tx = (key, vars) => {
+      const s = key.split('.').reduce((a, k) => (a && a[k] != null ? a[k] : undefined), I18N);
+      return s == null ? key : String(s).replace(/\{\{(\w+)\}\}/g, (_, n) => (vars && vars[n] != null ? String(vars[n]) : ''));
+    };
+    const CFG = {
+      readOnly: <%= viewerMode ? "true" : "false" %>,
+      meId: <%= meId %>,
+      meName: <%- safeJson(typeof username !== "undefined" ? String(username) : "") %>,
+      capacity: <%= Number(stats.capacity) || 0 %>
+    };
+    const STATUS_LABEL = { 1: tx('common.status1'), 2: tx('common.status2'), 3: tx('common.status3') };
+    const STORE_KEY = 'guestListState.v1' + BASE;
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const norm = (s) => String(s ?? '').toLocaleLowerCase('tr').normalize('NFD').replace(/\p{M}/gu, '').replace(/ı/g, 'i');
+    const cmpText = (a, b) => String(a).localeCompare(String(b), LOCALE, { sensitivity: 'base' });
 
-  function canManageGuestRow(tr){
-    if(IS_ADMIN) return true;
-    return tr.dataset.canManage === '1';
-  }
-  function canSeeContactRow(tr){
-    if(IS_ADMIN) return true;
-    return tr.dataset.canManage === '1';
-  }
+    // LCV durumu: yes = kisi sayisi bildirdi, no = gelmiyor, wait = henuz cevap yok
+    const rsvpState = (g) => (g.party != null && g.party > 0 ? 'yes' : (g.rsvp && g.party === 0 ? 'no' : 'wait'));
 
-  function updateStatusBtnStyle(btn, status){
-    btn.classList.remove('status-1','status-2','status-3');
-    btn.classList.add(`status-${status}`);
-    btn.dataset.status = String(status);
-    btn.textContent = statusLetterMap[status];
-    btn.setAttribute('aria-label', `Status: ${statusTextMap[status]}`);
-    btn.title = 'Status degistirmek icin tiklayin';
-  }
-  function nextStatus(current){ return current >= 3 ? 1 : current + 1; }
-  function updateConfirmedStats(stats) {
-    const ratio = document.getElementById('confirmed-guests-ratio');
-    const persons = document.getElementById('confirmed-persons');
-    if (ratio) ratio.textContent = `${Number(stats.confirmed_guest_count ?? 0)} / ${Number(stats.count_1 ?? 0)} onayladi`;
-    if (persons) persons.textContent = `${Number(stats.confirmed_persons ?? 0)} kisi gelecek`;
-  }
-  function updateStats(stats){
-    document.getElementById('count-1').textContent=stats.count_1;
-    document.getElementById('count-2').textContent=stats.count_2;
-    document.getElementById('count-3').textContent=stats.count_3;
-    document.getElementById('total-guests').textContent=stats.total_guests;
-    document.getElementById('occupancy-rate').textContent=`${stats.occupancy_rate}%`;
-    updateConfirmedStats(stats);
-    const dr=document.getElementById('declined-rsvp-count');
-    if(dr) dr.textContent=String(stats.declined_rsvp_count ?? 0);
-  }
-
-  function guestRowNameForSort(tr){
-    const cell = tr.querySelector('.guest-cell-name');
-    if(!cell) return '';
-    const inp = cell.querySelector('input.guest-inline-field');
-    if(inp) return String(inp.value || '').trim();
-    return String(cell.textContent || '').trim();
-  }
-  const sortState = { key: 'name', direction: 'asc' };
-
-  function guestRowCityForSort(tr){
-    const cell = tr.querySelector('.guest-cell-city');
-    if(!cell) return '';
-    const inp = cell.querySelector('input.guest-inline-field');
-    if(inp) return String(inp.value || '').trim();
-    return String(cell.textContent || '').trim();
-  }
-  function guestRowStatusForSort(tr){
-    return Number(tr.dataset.status || 0);
-  }
-  function guestRowPartyForSort(tr){
-    const raw = tr.dataset.partySize;
-    if(raw === '' || raw == null) return -1;
-    return Number(raw);
-  }
-  function sortDirectionFactor(){
-    return sortState.direction === 'asc' ? 1 : -1;
-  }
-  function compareGuestRows(a,b){
-    if(sortState.key === 'status'){
-      const diff = (guestRowStatusForSort(a) - guestRowStatusForSort(b)) * sortDirectionFactor();
-      if(diff !== 0) return diff;
-      return guestRowNameForSort(a).localeCompare(guestRowNameForSort(b), 'tr', { sensitivity: 'base' });
-    }
-    if(sortState.key === 'city'){
-      const cmp = guestRowCityForSort(a).localeCompare(guestRowCityForSort(b), 'tr', { sensitivity: 'base' }) * sortDirectionFactor();
-      if(cmp !== 0) return cmp;
-      return guestRowNameForSort(a).localeCompare(guestRowNameForSort(b), 'tr', { sensitivity: 'base' });
-    }
-    if(sortState.key === 'party'){
-      const diff = (guestRowPartyForSort(a) - guestRowPartyForSort(b)) * sortDirectionFactor();
-      if(diff !== 0) return diff;
-      return guestRowNameForSort(a).localeCompare(guestRowNameForSort(b), 'tr', { sensitivity: 'base' });
-    }
-    return guestRowNameForSort(a).localeCompare(guestRowNameForSort(b), 'tr', { sensitivity: 'base' }) * sortDirectionFactor();
-  }
-  function refreshSortIndicators(){
-    const buttons = document.querySelectorAll('.sort-btn');
-    buttons.forEach((btn)=>{
-      const key = btn.dataset.sortKey;
-      const indicator = btn.querySelector('.sort-indicator');
-      if(!indicator) return;
-      if(key !== sortState.key){
-        indicator.textContent = '';
-        btn.classList.remove('text-indigo-700');
-        return;
-      }
-      if(key === 'name') indicator.textContent = sortState.direction === 'asc' ? 'A-Z' : 'Z-A';
-      if(key === 'city') indicator.textContent = sortState.direction === 'asc' ? 'A-Z' : 'Z-A';
-      if(key === 'status') indicator.textContent = sortState.direction === 'asc' ? '1-3' : '3-1';
-      if(key === 'party') indicator.textContent = sortState.direction === 'asc' ? '0-5' : '5-0';
-      btn.classList.add('text-indigo-700');
-    });
-  }
-  function sortGuestTable(){
-    if(editingRow) return;
-    const tbody = document.querySelector('#tableWrap tbody');
-    if(!tbody) return;
-    const rows = Array.from(tbody.querySelectorAll('tr.guest-row'));
-    rows.sort(compareGuestRows);
-    for(const r of rows) tbody.appendChild(r);
-    refreshSortIndicators();
-  }
-  function setSort(key){
-    if(sortState.key === key){
-      sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
-    }else{
-      sortState.key = key;
-      sortState.direction = 'asc';
-    }
-    sortGuestTable();
-    applyTableFilter();
-  }
-
-  function statusCellHtml(id, status){
-    return `<div class="status-control">
-      <button type="button" class="status-btn status-${status}" data-id="${id}" data-status="${status}" aria-label="Status: ${statusTextMap[status]}" title="Status degistirmek icin tiklayin">${statusLetterMap[status]}</button>
-    </div>`;
-  }
-  function statusBadgeHtml(status){
-    return `<span class="inline-block text-xs font-medium px-2 py-1 rounded status-badge status-${status}">${status} - ${statusTextMap[status]}</span>`;
-  }
-  function actionsCellHtml(){
-    return `<div class="guest-actions">
-      <button type="button" class="guest-edit-btn px-2 py-1 rounded text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700">Duzenle</button>
-      <button type="button" class="guest-delete-btn px-2 py-1 rounded text-xs font-medium bg-rose-600 text-white hover:bg-rose-700">Sil</button>
-    </div>`;
-  }
-
-  function cancelInlineEdit(tr){
-    if(!tr || !tr._inlineBackup) return;
-    const b = tr._inlineBackup;
-    tr.querySelector('.guest-cell-name').innerHTML = b.name;
-    tr.querySelector('.guest-cell-phone').innerHTML = b.phone;
-    tr.querySelector('.guest-cell-email').innerHTML = b.email;
-    tr.querySelector('.guest-cell-city').innerHTML = b.city;
-    tr.querySelector('.guest-cell-status').innerHTML = b.status;
-    tr.querySelector('.guest-cell-actions').innerHTML = b.actions;
-    delete tr._inlineBackup;
-    if(editingRow === tr) editingRow = null;
-    tr.classList.remove('guest-row-editing');
-  }
-
-  function startInlineEdit(tr){
-    if(!canManageGuestRow(tr)) return;
-    if(tr._inlineBackup) return;
-    if(editingRow && editingRow !== tr) cancelInlineEdit(editingRow);
-    const nameTd = tr.querySelector('.guest-cell-name');
-    const phoneTd = tr.querySelector('.guest-cell-phone');
-    const emailTd = tr.querySelector('.guest-cell-email');
-    const cityTd = tr.querySelector('.guest-cell-city');
-    const statusTd = tr.querySelector('.guest-cell-status');
-    const actionsTd = tr.querySelector('.guest-cell-actions');
-    tr._inlineBackup = { name: nameTd.innerHTML, phone: phoneTd.innerHTML, email: emailTd.innerHTML, city: cityTd.innerHTML, status: statusTd.innerHTML, actions: actionsTd.innerHTML };
-    editingRow = tr;
-    tr.classList.add('guest-row-editing');
-
-    const inpName = document.createElement('input');
-    inpName.type = 'text';
-    inpName.required = true;
-    inpName.className = 'guest-inline-field w-full min-w-[10rem] rounded border border-indigo-200 px-2 py-1 text-sm font-medium';
-    inpName.value = tr.dataset.name || '';
-    nameTd.replaceChildren(inpName);
-
-    const inpPhone = document.createElement('input');
-    inpPhone.type = 'text';
-    inpPhone.className = 'guest-inline-field w-full min-w-[7rem] rounded border border-indigo-200 px-2 py-1 text-sm';
-    inpPhone.value = tr.dataset.phone || '';
-    phoneTd.replaceChildren(inpPhone);
-
-    const inpEmail = document.createElement('input');
-    inpEmail.type = 'email';
-    inpEmail.className = 'guest-inline-field w-full min-w-[10rem] rounded border border-indigo-200 px-2 py-1 text-sm';
-    inpEmail.value = tr.dataset.email || '';
-    emailTd.replaceChildren(inpEmail);
-
-    const inpCity = document.createElement('input');
-    inpCity.type = 'text';
-    inpCity.className = 'guest-inline-field w-full min-w-[7rem] rounded border border-indigo-200 px-2 py-1 text-sm';
-    inpCity.value = tr.dataset.city || '';
-    cityTd.replaceChildren(inpCity);
-
-    const sel = document.createElement('select');
-    sel.className = 'guest-inline-status w-full max-w-[12rem] rounded border border-indigo-200 px-2 py-1 text-sm';
-    [[1,'1 - Mutlaka'],[2,'2 - Olabilir'],[3,'3 - Gerek Yok']].forEach(([v,t])=>{ const o=document.createElement('option'); o.value=v; o.textContent=t; sel.appendChild(o); });
-    sel.value = String(tr.dataset.status || '2');
-    statusTd.replaceChildren(sel);
-
-    const wrap = document.createElement('div');
-    wrap.className = 'guest-actions';
-    const btnSave = document.createElement('button');
-    btnSave.type = 'button';
-    btnSave.className = 'guest-inline-save px-2 py-1 rounded text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700';
-    btnSave.textContent = 'Kaydet';
-    const btnCancel = document.createElement('button');
-    btnCancel.type = 'button';
-    btnCancel.className = 'guest-inline-cancel px-2 py-1 rounded text-xs font-medium border border-slate-300 bg-white hover:bg-slate-50';
-    btnCancel.textContent = 'Iptal';
-    wrap.append(btnSave, btnCancel);
-    actionsTd.replaceChildren(wrap);
-    inpName.focus();
-  }
-
-  async function saveInlineEdit(tr){
-    const id = Number(tr.dataset.id);
-    const name = tr.querySelector('.guest-cell-name input')?.value.trim() || '';
-    const phone = tr.querySelector('.guest-cell-phone input')?.value.trim() || '';
-    const email = tr.querySelector('.guest-cell-email input')?.value.trim() || '';
-    const city = tr.querySelector('.guest-cell-city input')?.value.trim() || '';
-    const status = Number(tr.querySelector('.guest-inline-status')?.value || 0);
-    if(!name){ alert('Ad Soyad zorunludur'); return; }
-    const res = await fetch(`${GUEST_API.prefix}/${id}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, phone, email, city, status }) });
-    const ct = res.headers.get('content-type') || '';
-    const data = ct.includes('application/json') ? await res.json() : { success: false, message: await res.text().catch(()=>'Sunucu yaniti gecersiz') };
-    if(!res.ok || !data.success){ alert(data.message || 'Kayit guncellenemedi'); return; }
-    delete tr._inlineBackup;
-    editingRow = null;
-    tr.classList.remove('guest-row-editing');
-    tr.dataset.name = name;
-    tr.dataset.city = city;
-    tr.dataset.status = String(status);
-    if(canSeeContactRow(tr)){
-      tr.dataset.phone = phone;
-      tr.dataset.email = email;
-    }
-    tr.dataset.canManage = '1';
-    tr.dataset.userId = String(CURRENT_USER_ID || '');
-    tr.querySelector('.guest-cell-name').textContent = name;
-    tr.querySelector('.guest-cell-phone').textContent = canSeeContactRow(tr) ? phone : '—';
-    tr.querySelector('.guest-cell-email').textContent = canSeeContactRow(tr) ? email : '—';
-    tr.querySelector('.guest-cell-city').textContent = city;
-    tr.querySelector('.guest-cell-status').innerHTML = canManageGuestRow(tr) ? statusCellHtml(id, status) : statusBadgeHtml(status);
-    tr.querySelector('.guest-cell-actions').innerHTML = actionsCellHtml();
-    updateStats(data.stats);
-    sortGuestTable();
-    applyTableFilter();
-  }
-
-  async function updateGuestStatus(id, status, btn){
-    const res = await fetch('/api/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status})});
-    const data = await res.json();
-    if(!res.ok || !data.success){ alert(data.message || 'Guncelleme basarisiz'); return; }
-    updateStatusBtnStyle(btn, status);
-    const tr = btn.closest('.guest-row');
-    if(tr) tr.dataset.status = String(status);
-    updateStats(data.stats);
-  }
-
-  const tableWrap = document.getElementById('tableWrap');
-  if (!READ_ONLY) tableWrap.addEventListener('click', (e)=>{
-    const btn = e.target.closest('.status-btn');
-    if(!btn) return;
-    const tr = btn.closest('.guest-row');
-    if(tr && !canManageGuestRow(tr)) return;
-    const current = Number(btn.dataset.status || 1);
-    const status = nextStatus(current);
-    const id = Number(btn.dataset.id);
-    updateGuestStatus(id, status, btn);
-  });
-
-  if (!READ_ONLY) tableWrap.addEventListener('click', async (e)=>{
-    if(e.target.closest('.status-btn')) return;
-    if(e.target.closest('.guest-inline-save')){
-      await saveInlineEdit(e.target.closest('.guest-row'));
-      return;
-    }
-    if(e.target.closest('.guest-inline-cancel')){
-      cancelInlineEdit(e.target.closest('.guest-row'));
-      return;
-    }
-    if(e.target.closest('.guest-edit-btn')){
-      startInlineEdit(e.target.closest('.guest-row'));
-      return;
-    }
-    const delBtn = e.target.closest('.guest-delete-btn');
-    if(delBtn){
-      const tr = delBtn.closest('.guest-row');
-      const id = Number(tr.dataset.id);
-      if(!id || !confirm('Bu davetliyi silmek istediginize emin misiniz?')) return;
-      const res = await fetch(`${GUEST_API.prefix}/${id}`, { method:'DELETE' });
-      const data = await res.json();
-      if(!res.ok || !data.success){ alert(data.message || 'Silme basarisiz'); return; }
-      if(editingRow === tr) editingRow = null;
-      tr.remove();
-      updateStats(data.stats);
-      applyTableFilter();
-    }
-  });
-
-  const tableSearch = document.getElementById('tableSearch');
-  const tableSearchClear = document.getElementById('tableSearchClear');
-  const userFilter = document.getElementById('userFilter');
-  const cityFilter = document.getElementById('cityFilter');
-  const filteredGuestCountEl = document.getElementById('filteredGuestCount');
-  const pageSizeSelect = document.getElementById('pageSizeSelect');
-  const pagePrev = document.getElementById('pagePrev');
-  const pageNext = document.getElementById('pageNext');
-  const pageInfo = document.getElementById('pageInfo');
-  let pageSize = Number(pageSizeSelect?.value || 10);
-  let currentPage = 1;
-  const tableRows = () => document.querySelectorAll('#tableWrap tbody tr.guest-row');
-
-  function rowMatchesFilter(tr, q, userId, city) {
-    const hay = tr.innerText.toLowerCase().replace(/\s+/g, ' ');
-    const matchSearch = !q || hay.includes(q);
-    const rowUserId = tr.dataset.userId || '';
-    const matchUser = !userId || (userId === '__none__' ? !rowUserId : rowUserId === userId);
-    const rowCity = tr.dataset.city || '';
-    const matchCity = !city || (city === '__none__' ? !rowCity : rowCity === city);
-    return matchSearch && matchUser && matchCity;
-  }
-
-  function updatePageNav(totalPages) {
-    if (pagePrev) pagePrev.disabled = currentPage <= 1;
-    if (pageNext) pageNext.disabled = currentPage >= totalPages;
-  }
-
-  function updatePageInfo(matchedCount, totalPages) {
-    if (!pageInfo) return;
-    if (!matchedCount) {
-      pageInfo.textContent = 'Kayit bulunamadi';
-      updatePageNav(1);
-      return;
-    }
-    const start = (currentPage - 1) * pageSize + 1;
-    const end = Math.min(currentPage * pageSize, matchedCount);
-    pageInfo.textContent = `${start}-${end} / ${matchedCount} kayit · Sayfa ${currentPage} / ${totalPages}`;
-    updatePageNav(totalPages);
-  }
-
-  function applyTableFilter(resetPage = false) {
-    if (resetPage) currentPage = 1;
-    pageSize = Number(pageSizeSelect?.value || pageSize || 10);
-    const q = (tableSearch && tableSearch.value || '').trim().toLowerCase();
-    const userId = userFilter ? userFilter.value : '';
-    const city = cityFilter ? cityFilter.value : '';
-    if (tableSearchClear) tableSearchClear.classList.toggle('is-visible', q.length > 0);
-
-    const rows = Array.from(tableRows());
-    const matched = rows.filter((tr) => rowMatchesFilter(tr, q, userId, city));
-    const totalPages = Math.max(1, Math.ceil(matched.length / pageSize));
-    if (currentPage > totalPages) currentPage = totalPages;
-    if (currentPage < 1) currentPage = 1;
-
-    rows.forEach((tr) => { tr.style.display = 'none'; });
-    matched.forEach((tr, idx) => {
-      const page = Math.floor(idx / pageSize) + 1;
-      if (page === currentPage) tr.style.display = '';
-    });
-
-    if (filteredGuestCountEl) {
-      const total = rows.length;
-      filteredGuestCountEl.textContent = total ? `${matched.length} / ${total}` : '';
-    }
-    updatePageInfo(matched.length, totalPages);
-  }
-  if (tableSearch) {
-    tableSearch.addEventListener('input', () => applyTableFilter(true));
-    tableSearch.addEventListener('search', () => applyTableFilter(true));
-  }
-  if (tableSearchClear && tableSearch) {
-    tableSearchClear.addEventListener('click', () => {
-      tableSearch.value = '';
-      tableSearch.focus();
-      applyTableFilter(true);
-    });
-  }
-  if (userFilter) {
-    userFilter.addEventListener('change', () => applyTableFilter(true));
-  }
-  if (cityFilter) {
-    cityFilter.addEventListener('change', () => applyTableFilter(true));
-  }
-  if (pageSizeSelect) {
-    pageSizeSelect.addEventListener('change', () => {
-      pageSize = Number(pageSizeSelect.value || 10);
-      applyTableFilter(true);
-      document.getElementById('tableWrap')?.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-  }
-  if (pagePrev) {
-    pagePrev.addEventListener('click', () => {
-      if (currentPage <= 1) return;
-      currentPage -= 1;
-      applyTableFilter(false);
-      document.getElementById('tableWrap')?.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-  }
-  if (pageNext) {
-    pageNext.addEventListener('click', () => {
-      currentPage += 1;
-      applyTableFilter(false);
-      document.getElementById('tableWrap')?.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-  }
-  document.querySelectorAll('.sort-btn').forEach((btn)=>{
-    btn.addEventListener('click', ()=> setSort(btn.dataset.sortKey));
-  });
-  sortGuestTable();
-  applyTableFilter();
-
-  document.querySelectorAll('.invite-copy-btn').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const url = btn.dataset.url || '';
-      if (!url) return;
+    const defaults = { q: '', status: '', rsvp: '', user: '', city: '', sortKey: 'name', sortDir: 1, page: 1, size: 25 };
+    const st = { ...defaults };
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(STORE_KEY) || 'null');
+      if (saved && typeof saved === 'object') for (const k of Object.keys(defaults)) if (k in saved) st[k] = saved[k];
+      const size = Number(localStorage.getItem(STORE_KEY + '.size'));
+      if ([0, 25, 50, 100].includes(size) && localStorage.getItem(STORE_KEY + '.size') !== null) st.size = size;
+    } catch (_) {}
+    const persist = () => {
       try {
-        await navigator.clipboard.writeText(url);
-        const prev = btn.textContent;
-        btn.textContent = 'OK';
-        setTimeout(() => { btn.textContent = prev; }, 1500);
+        sessionStorage.setItem(STORE_KEY, JSON.stringify(st));
+        localStorage.setItem(STORE_KEY + '.size', String(st.size));
+      } catch (_) {}
+    };
+
+    function toast(msg, isError) {
+      const el = $('glToast');
+      el.textContent = msg;
+      el.classList.toggle('is-error', !!isError);
+      el.classList.add('is-visible');
+      clearTimeout(toast.t);
+      toast.t = setTimeout(() => el.classList.remove('is-visible'), isError ? 4500 : 2200);
+    }
+
+    async function api(url, method, body) {
+      const res = await fetch(BASE + url, {
+        method,
+        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        body: body ? JSON.stringify(body) : undefined
+      });
+      const isJson = (res.headers.get('content-type') || '').includes('application/json');
+      const data = isJson ? await res.json() : { success: false, message: tx('common.invalidResponse') };
+      if (res.status === 401) { location.href = BASE + '/login'; throw new Error(tx('common.sessionExpired')); }
+      if (!res.ok || !data.success) throw new Error(data.message || tx('common.failed'));
+      return data;
+    }
+
+    /* ---------- Ozet kartlari ---------- */
+    function renderKpis() {
+      const c = { 1: 0, 2: 0, 3: 0 };
+      const r = { yes: 0, no: 0, wait: 0 };
+      let persons = 0;
+      let waitingMust = 0;
+      for (const g of GUESTS) {
+        c[g.status] = (c[g.status] || 0) + 1;
+        const rs = rsvpState(g);
+        r[rs] += 1;
+        if (rs === 'yes') persons += g.party;
+        if (rs === 'wait' && g.status === 1) waitingMust += 1;
+      }
+      const total = GUESTS.length;
+      const pct = (a, b) => (b > 0 ? Math.min(100, (a / b) * 100) : 0);
+      $('kpiTotal').textContent = total;
+      $('kpiC1').textContent = c[1];
+      $('kpiC2').textContent = c[2];
+      $('kpiC3').textContent = c[3];
+      $('kpiSeg1').style.width = pct(c[1], total) + '%';
+      $('kpiSeg2').style.width = pct(c[2], total) + '%';
+      $('kpiSeg3').style.width = pct(c[3], total) + '%';
+      $('kpiConfirmed').textContent = r.yes;
+      $('kpiConfirmedOf').textContent = c[1];
+      $('kpiConfirmedBar').style.width = pct(r.yes, c[1]) + '%';
+      $('kpiDeclined').textContent = r.no;
+      $('kpiWaiting').textContent = waitingMust;
+      $('kpiPersons').textContent = persons;
+      $('kpiCapacity').textContent = CFG.capacity;
+      $('kpiPersonsBar').style.width = pct(persons, CFG.capacity) + '%';
+      const occ = pct(c[1] * 2.5, CFG.capacity);
+      $('kpiOccupancy').textContent = occ.toFixed(1);
+      $('kpiOccupancyBar').style.width = occ + '%';
+      $('glHeadSub').textContent = `${total} ${tx('list.guestsWord')} · ${persons} ${tx('list.personsConfirmedWord')} · ${tx('list.capacityWord')} ${CFG.capacity}`;
+
+      const counts = { 'status-1': c[1], 'status-2': c[2], 'status-3': c[3], 'rsvp-yes': r.yes, 'rsvp-no': r.no, 'rsvp-wait': r.wait };
+      document.querySelectorAll('[data-count]').forEach((el) => { el.textContent = counts[el.dataset.count] ?? ''; });
+    }
+
+    /* ---------- Kapasite ---------- */
+    const capInput = $('glCapacity');
+    if (capInput) {
+      let savedCap = CFG.capacity;
+      capInput.value = savedCap;
+      const validCap = (v) => Number.isInteger(v) && v >= 1 && v <= 100000;
+      const showCap = (v) => { CFG.capacity = v; renderKpis(); };
+      // Yazarken hesaplar aninda guncellenir; alan terk edilince veya Enter ile kaydedilir.
+      capInput.addEventListener('input', () => { const v = Number(capInput.value); if (validCap(v)) showCap(v); });
+      capInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); capInput.blur(); } });
+      capInput.addEventListener('change', async () => {
+        const v = Number(capInput.value);
+        const revert = (msg) => { capInput.value = savedCap; showCap(savedCap); toast(msg, true); };
+        if (!validCap(v)) return revert(tx('list.capacityInvalid'));
+        if (v === savedCap) return;
+        capInput.disabled = true;
+        try {
+          await api('/api/capacity', 'POST', { capacity: v });
+          savedCap = v;
+          showCap(v);
+          toast(tx('list.capacitySaved', { n: v }));
+        } catch (err) {
+          revert(tx('list.capacitySaveFailed', { msg: err.message }));
+        } finally {
+          capInput.disabled = false;
+        }
+      });
+    }
+
+    /* ---------- Filtre secenekleri ---------- */
+    function fillSelect(sel, entries, noneCount, current) {
+      const opts = [`<option value="">${esc(tx('common.all'))}</option>`];
+      if (noneCount) opts.push(`<option value="__none__">${esc(tx('list.none', { n: noneCount }))}</option>`);
+      for (const [value, label, count] of entries) opts.push(`<option value="${esc(value)}">${esc(label)} (${count})</option>`);
+      sel.innerHTML = opts.join('');
+      sel.value = current;
+      if (sel.value !== current) return '';
+      return current;
+    }
+    function renderFilterOptions() {
+      const users = new Map();
+      const cities = new Map();
+      let noUser = 0;
+      let noCity = 0;
+      for (const g of GUESTS) {
+        if (g.uid == null) noUser += 1;
+        else {
+          const u = users.get(String(g.uid)) || { label: g.owner || `#${g.uid}`, n: 0 };
+          u.n += 1;
+          users.set(String(g.uid), u);
+        }
+        if (!g.city) noCity += 1;
+        else cities.set(g.city, (cities.get(g.city) || 0) + 1);
+      }
+      const userEntries = [...users].map(([id, u]) => [id, u.label, u.n]).sort((a, b) => cmpText(a[1], b[1]));
+      const cityEntries = [...cities].map(([c, n]) => [c, c, n]).sort((a, b) => cmpText(a[1], b[1]));
+      st.user = fillSelect($('glUser'), userEntries, noUser, st.user);
+      st.city = fillSelect($('glCity'), cityEntries, noCity, st.city);
+      const dl = $('glCityList');
+      if (dl) dl.innerHTML = cityEntries.map(([c]) => `<option value="${esc(c)}">`).join('');
+    }
+
+    /* ---------- Filtre + siralama ---------- */
+    const hay = (g) => (g._hay ??= norm([g.name, g.phone, g.email, g.city, g.note, g.owner].join(' ')));
+    function filtered() {
+      const tokens = norm(st.q).split(/\s+/).filter(Boolean);
+      const status = st.status ? Number(st.status) : 0;
+      return GUESTS.filter((g) => {
+        if (status && g.status !== status) return false;
+        if (st.rsvp && rsvpState(g) !== st.rsvp) return false;
+        if (st.user && (st.user === '__none__' ? g.uid != null : String(g.uid) !== st.user)) return false;
+        if (st.city && (st.city === '__none__' ? !!g.city : g.city !== st.city)) return false;
+        if (tokens.length) { const h = hay(g); if (!tokens.every((t) => h.includes(t))) return false; }
+        return true;
+      });
+    }
+    function sortRows(rows) {
+      const dir = st.sortDir;
+      const emptyLast = (a, b, get) => {
+        const x = get(a), y = get(b);
+        if (!x && y) return 1;
+        if (x && !y) return -1;
+        return cmpText(x, y) * dir;
+      };
+      const by = {
+        name: (a, b) => cmpText(a.name, b.name) * dir,
+        city: (a, b) => emptyLast(a, b, (g) => g.city),
+        owner: (a, b) => emptyLast(a, b, (g) => g.owner),
+        status: (a, b) => (a.status - b.status) * dir,
+        party: (a, b) => ((a.party ?? -1) - (b.party ?? -1)) * dir
+      }[st.sortKey] || ((a, b) => cmpText(a.name, b.name));
+      return rows.sort((a, b) => by(a, b) || cmpText(a.name, b.name) || a.id - b.id);
+    }
+
+    /* ---------- Satirlar ---------- */
+    function statusCell(g) {
+      if (!g.can) return `<span class="gl-badge s${g.status}">${g.status} · ${esc(STATUS_LABEL[g.status] || '')}</span>`;
+      return `<div class="gl-seg" role="group" aria-label="${esc(tx('common.status'))}">${[1, 2, 3].map((v) =>
+        `<button type="button" class="s${v}${g.status === v ? ' is-active' : ''}" data-act="status" data-v="${v}" title="${esc(STATUS_LABEL[v])}" aria-pressed="${g.status === v}">${v}</button>`).join('')}</div>`;
+    }
+    function rsvpCell(g) {
+      const rs = rsvpState(g);
+      const when = g.rsvpAt ? new Date(g.rsvpAt).toLocaleDateString(DATE_LOCALE) : '';
+      const title = when ? ` title="${esc(tx('list.rsvpDate', { date: when }))}"` : '';
+      const badge = rs === 'yes'
+        ? `<span class="gl-badge s1"${title}>${esc(tx('list.coming', { n: g.party }))}</span>`
+        : rs === 'no'
+          ? `<span class="gl-badge s3"${title}>${esc(tx('list.rsvpNo'))}</span>`
+          : `<span class="gl-badge wait">${esc(tx('list.rsvpWait'))}</span>`;
+      const note = g.note ? `<p class="gl-note" title="${esc(g.note)}">${esc(g.note)}</p>` : '';
+      return badge + note;
+    }
+    function rowHtml(g) {
+      const contact = [
+        g.phone ? `<a href="tel:${esc(g.phone.replace(/[^\d+]/g, ''))}">${esc(g.phone)}</a>` : '',
+        g.email ? `<a href="mailto:${esc(g.email)}">${esc(g.email)}</a>` : ''
+      ].filter(Boolean).join('<span> · </span>');
+      const actions = [
+        g.url ? `<button type="button" class="gl-act" data-act="copy" title="${esc(g.url)}">${esc(tx('list.inviteLink'))}</button>` : '',
+        g.can ? `<button type="button" class="gl-act" data-act="edit">${esc(tx('common.edit'))}</button>` : '',
+        g.can ? `<button type="button" class="gl-act danger" data-act="del">${esc(tx('common.delete'))}</button>` : ''
+      ].join('');
+      return `<tr class="gl-row${rsvpState(g) === 'no' ? ' is-declined' : ''}" data-id="${g.id}">
+        <td class="gl-c-name"><p class="gl-name">${esc(g.name)}</p>${contact ? `<p class="gl-contact">${contact}</p>` : ''}</td>
+        <td class="gl-c-city">${g.city ? esc(g.city) : '<span class="gl-muted">—</span>'}</td>
+        <td class="gl-c-status">${statusCell(g)}</td>
+        <td class="gl-c-rsvp">${rsvpCell(g)}</td>
+        <td class="gl-c-owner">${g.owner ? esc(g.owner) : '<span class="gl-muted">—</span>'}</td>
+        <td class="gl-c-actions"><div class="gl-actions">${actions}</div></td>
+      </tr>`;
+    }
+
+    let lastRows = [];
+    function render() {
+      const rows = sortRows(filtered());
+      lastRows = rows;
+      const size = st.size > 0 ? st.size : Math.max(rows.length, 1);
+      const pages = Math.max(1, Math.ceil(rows.length / size));
+      st.page = Math.min(Math.max(1, st.page), pages);
+      const start = (st.page - 1) * size;
+      const pageRows = rows.slice(start, start + size);
+
+      $('glBody').innerHTML = pageRows.map(rowHtml).join('');
+      $('glEmpty').hidden = rows.length > 0;
+
+      const persons = rows.reduce((n, g) => n + (rsvpState(g) === 'yes' ? g.party : 0), 0);
+      const isFiltered = !!(st.q || st.status || st.rsvp || st.user || st.city);
+      $('glSummary').innerHTML = `<b>${rows.length}</b> ${esc(tx('list.guestsWord'))}${isFiltered ? ` <span class="gl-muted">${esc(tx('list.totalParen', { n: GUESTS.length }))}</span>` : ''} · <b>${persons}</b> ${esc(tx('list.personsConfirmedWord'))}`;
+      $('glReset').hidden = !isFiltered;
+
+      $('glPageInfo').textContent = rows.length ? `${start + 1}–${start + pageRows.length} / ${rows.length}` : '0';
+      $('glPrev').disabled = st.page <= 1;
+      $('glNext').disabled = st.page >= pages;
+
+      document.querySelectorAll('.gl-chip').forEach((chip) => {
+        chip.classList.toggle('is-active', String(st[chip.dataset.filter] || '') === chip.dataset.value);
+      });
+      document.querySelectorAll('.gl-sort').forEach((btn) => {
+        const active = btn.dataset.sort === st.sortKey;
+        btn.classList.toggle('is-active', active);
+        btn.querySelector('span').textContent = active ? (st.sortDir === 1 ? ' ▲' : ' ▼') : '';
+      });
+      const sortSel = $('glSortSelect');
+      sortSel.value = `${st.sortKey}:${st.sortDir}`;
+      if (sortSel.selectedIndex < 0) sortSel.value = `${st.sortKey}:1`;
+      persist();
+    }
+    function refreshAll() { renderKpis(); renderFilterOptions(); render(); }
+    function setFilter(patch) { Object.assign(st, patch, { page: 1 }); render(); }
+    function resetFilters() {
+      $('glSearch').value = '';
+      $('glUser').value = '';
+      $('glCity').value = '';
+      setFilter({ q: '', status: '', rsvp: '', user: '', city: '' });
+    }
+
+    /* ---------- Olaylar ---------- */
+    const search = $('glSearch');
+    search.value = st.q;
+    search.addEventListener('input', () => setFilter({ q: search.value }));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) { e.preventDefault(); search.focus(); search.select(); }
+    });
+    $('glUser').addEventListener('change', (e) => setFilter({ user: e.target.value }));
+    $('glCity').addEventListener('change', (e) => setFilter({ city: e.target.value }));
+    $('glReset').addEventListener('click', resetFilters);
+    $('glEmptyReset').addEventListener('click', resetFilters);
+    document.querySelectorAll('.gl-chip').forEach((chip) => chip.addEventListener('click', () => {
+      const key = chip.dataset.filter;
+      setFilter({ [key]: st[key] === chip.dataset.value ? '' : chip.dataset.value });
+    }));
+    $('kpiWaitingBtn').addEventListener('click', () => {
+      setFilter({ status: '1', rsvp: 'wait' });
+      document.querySelector('.gl-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    document.querySelectorAll('.gl-sort').forEach((btn) => btn.addEventListener('click', () => {
+      const key = btn.dataset.sort;
+      setFilter(st.sortKey === key ? { sortDir: -st.sortDir } : { sortKey: key, sortDir: key === 'party' ? -1 : 1 });
+    }));
+    $('glSortSelect').addEventListener('change', (e) => {
+      const [key, dir] = e.target.value.split(':');
+      setFilter({ sortKey: key, sortDir: Number(dir) });
+    });
+    const pageSizeSel = $('glPageSize');
+    pageSizeSel.value = String(st.size);
+    pageSizeSel.addEventListener('change', () => setFilter({ size: Number(pageSizeSel.value) }));
+    const goPage = (delta) => {
+      st.page += delta;
+      render();
+      document.querySelector('.gl-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    $('glPrev').addEventListener('click', () => goPage(-1));
+    $('glNext').addEventListener('click', () => goPage(1));
+
+    async function copyText(text) {
+      try { await navigator.clipboard.writeText(text); return true; } catch (_) {}
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;left:-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      return ok;
+    }
+
+    $('glBody').addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-act]');
+      if (!btn) return;
+      const g = GUESTS.find((x) => x.id === Number(btn.closest('tr').dataset.id));
+      if (!g) return;
+      const act = btn.dataset.act;
+      try {
+        if (act === 'copy') {
+          toast((await copyText(g.url)) ? tx('list.linkCopied', { name: g.name }) : tx('list.linkCopyFailed'), false);
+        } else if (act === 'status') {
+          const v = Number(btn.dataset.v);
+          if (v === g.status || btn.disabled) return;
+          btn.parentElement.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+          try { await api('/api/update', 'POST', { id: g.id, status: v }); g.status = v; }
+          finally { refreshAll(); }
+        } else if (act === 'edit') {
+          openEdit(g);
+        } else if (act === 'del') {
+          if (!confirm(tx('list.confirmDelete', { name: g.name }))) return;
+          await api(`/api/guest/${g.id}`, 'DELETE');
+          GUESTS.splice(GUESTS.indexOf(g), 1);
+          refreshAll();
+          toast(tx('list.deleted'));
+        }
       } catch (err) {
-        const ta = document.createElement('textarea');
-        ta.value = url;
-        ta.setAttribute('readonly', '');
-        ta.style.position = 'fixed';
-        ta.style.left = '-9999px';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
+        toast(err.message, true);
       }
     });
-  });
+
+    /* ---------- Duzenleme penceresi ---------- */
+    const dlg = $('glEdit');
+    let editing = null;
+    let dupConfirmed = '';
+    const FLASH_KEY = STORE_KEY + '.flash';
+    // g = null: yeni davetli; aksi halde mevcut kaydi duzenler.
+    function openEdit(g) {
+      if (!dlg) return;
+      editing = g;
+      dupConfirmed = '';
+      const f = $('glEditForm');
+      f.elements.name.value = g ? g.name : '';
+      f.elements.phone.value = g ? g.phone : '';
+      f.elements.email.value = g ? g.email : '';
+      f.elements.city.value = g ? g.city : '';
+      f.elements.status.value = String(g ? g.status : 1);
+      $('glEditTitle').textContent = g ? tx('list.editTitle') : tx('list.newTitle');
+      $('glAddMoreWrap').hidden = !!g;
+      $('glEditError').hidden = true;
+      if (!dlg.open) dlg.showModal();
+      f.elements.name.focus();
+    }
+    // Yeni kayit mevcut form adresine (POST /) gonderilir; basarida sunucu /?ok=1 adresine yonlendirir.
+    async function createGuest(body) {
+      const res = await fetch(BASE + '/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(Object.entries(body).map(([k, v]) => [k, String(v)]))
+      });
+      const url = new URL(res.url, location.href);
+      if (res.ok && atPath(url, '/') && url.searchParams.get('ok') === '1') return;
+      if (atPath(url, '/login')) { location.href = BASE + '/login'; throw new Error(tx('common.sessionExpired')); }
+      let msg = '';
+      try {
+        const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+        msg = (doc.querySelector('.bg-red-100')?.textContent || '').trim();
+      } catch (_) {}
+      throw new Error(msg || tx('list.addFailed'));
+    }
+    if (dlg) {
+      $('glAdd').addEventListener('click', (e) => { e.preventDefault(); openEdit(null); });
+      try {
+        const flash = JSON.parse(sessionStorage.getItem(FLASH_KEY) || 'null');
+        sessionStorage.removeItem(FLASH_KEY);
+        if (flash) {
+          toast(flash.msg || tx('list.added', { name: flash.name }));
+          if (flash.more) { openEdit(null); $('glAddMore').checked = true; }
+        }
+      } catch (_) {}
+      $('glEditCancel').addEventListener('click', () => dlg.close());
+      dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+      $('glEditForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const g = editing;
+        const f = e.currentTarget;
+        if (!g) {
+          const body = {
+            name: f.elements.name.value.trim(),
+            phone: f.elements.phone.value.trim(),
+            email: f.elements.email.value.trim(),
+            city: f.elements.city.value.trim(),
+            status: Number(f.elements.status.value)
+          };
+          const errEl = $('glEditError');
+          if (!body.name) { errEl.textContent = tx('list.nameRequired'); errEl.hidden = false; return; }
+          const key = norm(body.name).replace(/\s+/g, ' ');
+          const dup = GUESTS.find((x) => norm(x.name).replace(/\s+/g, ' ').trim() === key);
+          if (dup && dupConfirmed !== key) {
+            dupConfirmed = key;
+            errEl.textContent = tx('list.duplicate', { name: dup.name + (dup.city ? ` (${dup.city})` : '') });
+            errEl.hidden = false;
+            return;
+          }
+          const saveBtn = $('glEditSave');
+          saveBtn.disabled = true;
+          try {
+            await createGuest(body);
+            try { sessionStorage.setItem(FLASH_KEY, JSON.stringify({ name: body.name, more: $('glAddMore').checked })); } catch (_) {}
+            location.reload();
+          } catch (err) {
+            errEl.textContent = err.message;
+            errEl.hidden = false;
+            saveBtn.disabled = false;
+          }
+          return;
+        }
+        const body = {
+          name: f.elements.name.value.trim(),
+          phone: f.elements.phone.value.trim(),
+          email: f.elements.email.value.trim(),
+          city: f.elements.city.value.trim(),
+          status: Number(f.elements.status.value)
+        };
+        const errEl = $('glEditError');
+        if (!body.name) { errEl.textContent = tx('list.nameRequired'); errEl.hidden = false; return; }
+        const saveBtn = $('glEditSave');
+        saveBtn.disabled = true;
+        try {
+          await api(`/api/guest/${g.id}`, 'POST', body);
+          Object.assign(g, body);
+          // Sunucu sahipsiz kaydi duzenleyen kullaniciya atar.
+          if (g.uid == null && CFG.meId) { g.uid = CFG.meId; g.owner = CFG.meName; }
+          delete g._hay;
+          dlg.close();
+          refreshAll();
+          toast(tx('list.saved'));
+        } catch (err) {
+          errEl.textContent = err.message;
+          errEl.hidden = false;
+        } finally {
+          saveBtn.disabled = false;
+        }
+      });
+    }
+
+    /* ---------- CSV yukleme ---------- */
+    function parseCsv(text) {
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+      const firstLine = text.split(/\r?\n/, 1)[0];
+      const delim = [';', ',', '\t'].map((d) => [d, firstLine.split(d).length]).sort((a, b) => b[1] - a[1])[0][0];
+      const rows = [];
+      let row = [];
+      let cell = '';
+      let inQuotes = false;
+      for (let i = 0; i < text.length; i += 1) {
+        const c = text[i];
+        if (inQuotes) {
+          if (c !== '"') cell += c;
+          else if (text[i + 1] === '"') { cell += '"'; i += 1; }
+          else inQuotes = false;
+        } else if (c === '"' && cell === '') inQuotes = true;
+        else if (c === delim) { row.push(cell); cell = ''; }
+        else if (c === '\n' || c === '\r') {
+          if (c === '\r' && text[i + 1] === '\n') i += 1;
+          row.push(cell); rows.push(row); row = []; cell = '';
+        } else cell += c;
+      }
+      if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+      return rows.filter((r) => r.some((v) => v.trim() !== ''));
+    }
+    async function readCsvFile(file) {
+      const buf = await file.arrayBuffer();
+      const utf8 = new TextDecoder('utf-8').decode(buf);
+      // Excel'in eski "CSV" kaydi UTF-8 degildir; bozuk karakter varsa Turkce kod sayfasini dene.
+      if (!utf8.includes(String.fromCharCode(0xFFFD))) return utf8;
+      try { return new TextDecoder('windows-1254').decode(buf); } catch (_) { return utf8; }
+    }
+    const IMPORT_COLS = {
+      name: ['ad soyad', 'adsoyad', 'ad-soyad', 'ad', 'isim', 'name', 'vor- und nachname', 'vorname nachname', 'vollstandiger name', 'full name', 'gast', 'guest'],
+      phone: ['telefon', 'tel', 'phone', 'gsm', 'handy', 'mobil', 'mobile'],
+      email: ['email', 'e-mail', 'e-posta', 'eposta', 'mail'],
+      city: ['sehir', 'city', 'il', 'stadt', 'ort', 'town'],
+      status: ['status', 'durum']
+    };
+    const nameKey = (s) => norm(s).replace(/\s+/g, ' ').trim();
+    function csvToGuests(text) {
+      const rows = parseCsv(text);
+      if (rows.length < 2) throw new Error(tx('list.csvNeedRows'));
+      const header = rows[0].map((h) => nameKey(h));
+      const col = {};
+      for (const [key, names] of Object.entries(IMPORT_COLS)) col[key] = header.findIndex((h) => names.includes(h));
+      if (col.name < 0) throw new Error(tx('list.csvNoNameCol', { example: tx('list.csvHeaderExample') }));
+      const get = (r, key) => {
+        let v = col[key] >= 0 ? String(r[col[key]] ?? '').trim() : '';
+        if (/^'[=+\-@]/.test(v)) v = v.slice(1); // "CSV indir" formul korumasi
+        return v;
+      };
+      const toStatus = (v) => {
+        const m = v.match(/^[123]/);
+        if (m) return Number(m[0]);
+        const t = norm(v);
+        if (['mutlaka', 'jeden fall', 'definit'].some((w) => t.includes(w))) return 1;
+        return ['gerek', 'nicht', 'not needed'].some((w) => t.includes(w)) ? 3 : 2;
+      };
+      const existing = new Set(GUESTS.map((g) => nameKey(g.name)));
+      const seen = new Set();
+      const items = [];
+      let empty = 0;
+      for (const r of rows.slice(1)) {
+        const name = get(r, 'name').replace(/\s+/g, ' ');
+        if (!name) { empty += 1; continue; }
+        const key = nameKey(name);
+        items.push({
+          name, phone: get(r, 'phone'), email: get(r, 'email'), city: get(r, 'city'), status: toStatus(get(r, 'status')),
+          dup: existing.has(key) ? 'list' : seen.has(key) ? 'file' : ''
+        });
+        seen.add(key);
+      }
+      if (!items.length) throw new Error(tx('list.csvNoNamedRows'));
+      if (items.length > 2000) throw new Error(tx('list.csvTooMany'));
+      return { items, empty };
+    }
+
+    const importBtn = $('glImportBtn');
+    if (importBtn) {
+      const fileInput = $('glImportFile');
+      const idlg = $('glImport');
+      const skipBox = $('glImportSkip');
+      let pending = null;
+      let importing = false;
+      let needsReload = false;
+      const selected = () => pending.items.filter((it) => !(skipBox.checked && it.dup));
+      function renderImport() {
+        const all = pending.items;
+        const dups = all.filter((it) => it.dup).length;
+        const sel = selected();
+        $('glImportSummary').innerHTML = `<b>${all.length}</b> ${esc(tx('list.importRowsRead'))}` +
+          (dups ? ` · <b>${dups}</b> ${esc(tx('list.importDups'))}` : '') +
+          (pending.empty ? ` · ${esc(tx('list.importEmpty', { n: pending.empty }))}` : '') +
+          '. ' + esc(tx('list.importOwner', { user: '\u0001' })).replace('\u0001', `<b>${esc(CFG.meName)}</b>`);
+        $('glImportSkipWrap').hidden = !dups;
+        $('glImportRows').innerHTML = all.slice(0, 50).map((it) => {
+          const skipped = skipBox.checked && it.dup;
+          return `<tr class="${skipped ? 'is-skipped' : ''}"><td>${esc(it.name)}${it.dup ? ` <span class="gl-badge wait">${esc(it.dup === 'list' ? tx('list.dupInList') : tx('list.dupInFile'))}</span>` : ''}</td>` +
+            `<td>${esc(it.phone)}</td><td>${esc(it.email)}</td><td>${esc(it.city)}</td><td><span class="gl-badge s${it.status}">${it.status}</span></td></tr>`;
+        }).join('');
+        $('glImportMore').hidden = all.length <= 50;
+        $('glImportMore').textContent = tx('list.importMore', { n: all.length - 50 });
+        const go = $('glImportGo');
+        go.hidden = false;
+        go.textContent = tx('list.importGo', { n: sel.length });
+        go.disabled = sel.length === 0;
+      }
+      importBtn.addEventListener('click', () => { fileInput.value = ''; fileInput.click(); });
+      fileInput.addEventListener('change', async () => {
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+        try {
+          if (file.size > 2 * 1024 * 1024) throw new Error(tx('list.csvTooBig'));
+          pending = csvToGuests(await readCsvFile(file));
+          skipBox.checked = true;
+          $('glImportError').hidden = true;
+          $('glImportCancel').textContent = tx('common.cancel');
+          renderImport();
+          idlg.showModal();
+        } catch (err) {
+          toast(err.message, true);
+        }
+      });
+      skipBox.addEventListener('change', renderImport);
+      const closeImport = () => {
+        if (importing) return;
+        idlg.close();
+        if (needsReload) location.reload();
+      };
+      $('glImportCancel').addEventListener('click', closeImport);
+      idlg.addEventListener('cancel', (e) => { e.preventDefault(); closeImport(); });
+      $('glImportForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (importing || !pending) return;
+        const list = selected();
+        if (!list.length) return;
+        importing = true;
+        const go = $('glImportGo');
+        const cancel = $('glImportCancel');
+        go.disabled = true;
+        cancel.disabled = true;
+        skipBox.disabled = true;
+        const failed = [];
+        let done = 0;
+        let next = 0;
+        const worker = async () => {
+          while (next < list.length) {
+            const it = list[next];
+            next += 1;
+            try {
+              await createGuest({ name: it.name, phone: it.phone, email: it.email, city: it.city, status: it.status });
+            } catch (err) {
+              failed.push(`${it.name}: ${err.message}`);
+            }
+            done += 1;
+            go.textContent = tx('list.importing', { done, total: list.length });
+          }
+        };
+        await Promise.all([worker(), worker(), worker()]);
+        importing = false;
+        cancel.disabled = false;
+        skipBox.disabled = false;
+        const okCount = list.length - failed.length;
+        if (!failed.length) {
+          try { sessionStorage.setItem(FLASH_KEY, JSON.stringify({ msg: tx('list.importDone', { n: okCount }) })); } catch (_) {}
+          location.reload();
+          return;
+        }
+        needsReload = okCount > 0;
+        pending = null;
+        go.hidden = true;
+        cancel.textContent = tx('common.close');
+        const errEl = $('glImportError');
+        errEl.textContent = tx('list.importPartial', { ok: okCount, failed: failed.length, list: failed.slice(0, 5).join(' | ') + (failed.length > 5 ? ' ...' : '') });
+        errEl.hidden = false;
+      });
+    }
+
+    /* ---------- CSV ---------- */
+    $('glExport').addEventListener('click', () => {
+      const cell = (v) => {
+        let s = String(v ?? '');
+        if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+        return `"${s.replace(/"/g, '""')}"`;
+      };
+      const rsvpText = { yes: tx('list.rsvpYes'), no: tx('list.rsvpNo'), wait: tx('list.rsvpWait') };
+      const head = [tx('common.name'), tx('common.phone'), tx('common.email'), tx('common.city'), tx('common.status'), tx('list.rsvpLabel'), tx('list.csvPersons'), tx('list.csvNote'), tx('common.user'), tx('list.csvLink')];
+      const lines = lastRows.map((g) => [
+        g.name, g.phone, g.email, g.city, `${g.status} - ${STATUS_LABEL[g.status] || ''}`,
+        rsvpText[rsvpState(g)], g.party ?? '', g.note, g.owner, g.url
+      ].map(cell).join(';'));
+      const blob = new Blob([String.fromCharCode(0xFEFF) + [head.map(cell).join(';'), ...lines].join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${tx('list.csvFile')}-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      toast(tx('list.exported', { n: lastRows.length }));
+    });
+
+    refreshAll();
+  })();
   </script>
 </body>
 </html>

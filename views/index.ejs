@@ -1,27 +1,27 @@
 <!doctype html>
-<html lang="tr">
+<html lang="<%= locale %>">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Giris Formu</title>
+  <title><%= t('panel.form.title') %></title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="<%= basePath %>/style.css">
 </head>
 <body class="min-h-screen bg-slate-100">
   <%- include('partials/nav', { username, readOnly: false }) %>
 
   <main class="max-w-3xl mx-auto p-4 sm:p-6">
     <section class="bg-white border rounded-2xl p-6">
-      <h1 class="text-xl font-bold">Davetli Veri Girisi</h1>
-      <% if (ok) { %><div class="mt-4 rounded bg-emerald-100 text-emerald-700 px-3 py-2 text-sm">Davetli basariyla kaydedildi.</div><% } %>
+      <h1 class="text-xl font-bold"><%= t('panel.form.heading') %></h1>
+      <% if (ok) { %><div class="mt-4 rounded bg-emerald-100 text-emerald-700 px-3 py-2 text-sm"><%= t('panel.form.saved') %></div><% } %>
       <% if (error) { %><div class="mt-4 rounded bg-red-100 text-red-700 px-3 py-2 text-sm"><%= error %></div><% } %>
-      <form method="post" action="/" class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="sm:col-span-2"><label class="text-sm">Ad Soyad</label><input name="name" required class="mt-1 w-full rounded border px-3 py-2"></div>
-        <div><label class="text-sm">Telefon</label><input name="phone" class="mt-1 w-full rounded border px-3 py-2"></div>
-        <div><label class="text-sm">Email</label><input type="email" name="email" class="mt-1 w-full rounded border px-3 py-2"></div>
-        <div><label class="text-sm">Sehir</label><input name="city" class="mt-1 w-full rounded border px-3 py-2" placeholder="Orn. Istanbul, Ankara"></div>
-        <div class="sm:col-span-2"><label class="text-sm">Baslangic Statusu</label><select name="status" class="mt-1 w-full rounded border px-3 py-2"><option value="1" selected>1 - Mutlaka</option><option value="2">2 - Olabilir</option><option value="3">3 - Gerek Yok</option></select></div>
-        <div class="sm:col-span-2"><button class="rounded bg-indigo-600 text-white px-5 py-2.5 font-semibold">Kaydet</button></div>
+      <form method="post" action="<%= basePath %>/" class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="sm:col-span-2"><label class="text-sm"><%= t('panel.common.name') %></label><input name="name" required class="mt-1 w-full rounded border px-3 py-2"></div>
+        <div><label class="text-sm"><%= t('panel.common.phone') %></label><input name="phone" class="mt-1 w-full rounded border px-3 py-2"></div>
+        <div><label class="text-sm"><%= t('panel.common.email') %></label><input type="email" name="email" class="mt-1 w-full rounded border px-3 py-2"></div>
+        <div><label class="text-sm"><%= t('panel.common.city') %></label><input name="city" class="mt-1 w-full rounded border px-3 py-2" placeholder="<%= t('panel.form.cityPlaceholder') %>"></div>
+        <div class="sm:col-span-2"><label class="text-sm"><%= t('panel.form.initialStatus') %></label><select name="status" class="mt-1 w-full rounded border px-3 py-2"><option value="1" selected>1 - <%= t('panel.common.status1') %></option><option value="2">2 - <%= t('panel.common.status2') %></option><option value="3">3 - <%= t('panel.common.status3') %></option></select></div>
+        <div class="sm:col-span-2"><button class="rounded bg-indigo-600 text-white px-5 py-2.5 font-semibold"><%= t('panel.common.save') %></button></div>
       </form>
     </section>
   </main>
