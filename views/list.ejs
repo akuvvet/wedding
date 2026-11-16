@@ -15,22 +15,8 @@
     const meId = Number(typeof currentUserId !== "undefined" ? currentUserId || 0 : 0);
     const adminMode = typeof isAdmin !== "undefined" && !!isAdmin;
     const base = typeof baseUrl !== "undefined" ? baseUrl : "";
-    // Listede telefon herkese maskeli gosterilir: ulke kodu + 4 rakam (or. "+49 1701 •••").
-    // Tam numara / e-posta yalnizca kaydi yonetebilen kullaniciya gonderilir (duzenleme, CSV).
-    const maskPhone = (raw) => {
-      const text = String(raw || "").trim();
-      let digits = text.replace(/\D/g, "");
-      if (!digits) return "";
-      let cc = "49";
-      if (text.startsWith("+") || digits.startsWith("00")) {
-        if (digits.startsWith("00")) digits = digits.slice(2);
-        cc = digits.slice(0, 2);
-        digits = digits.slice(2);
-      }
-      digits = digits.replace(/^0+/, "");
-      const shown = digits.slice(0, Math.min(4, Math.max(0, digits.length - 3)));
-      return `+${cc} ${shown} •••`.replace("  ", " ");
-    };
+    // Telefon / e-posta listede yazilmaz; varsa satirda WhatsApp / E-posta dugmesi cikar.
+    // Tam numara ve adres yalnizca kaydi yonetebilen kullaniciya gonderilir.
     const guestData = guests.map((g) => {
       const uid = g.user_id == null ? null : Number(g.user_id);
       const can = !viewerMode && (adminMode || (uid !== null && uid === meId));
@@ -38,8 +24,9 @@
         id: Number(g.id),
         name: g.name || "",
         phone: can ? g.phone || "" : "",
-        phoneMasked: maskPhone(g.phone),
+        hasPhone: !!String(g.phone || "").replace(/\D/g, ""),
         email: can ? g.email || "" : "",
+        hasEmail: String(g.email || "").includes("@"),
         city: String(g.city || "").trim(),
         status: Number(g.status),
         uid,
@@ -434,8 +421,33 @@
     }
 
     /* ---------- Filtre + siralama ---------- */
-    // Sunucudaki maskeleme ile ayni islev (duzenleme sonrasi satiri guncellemek icin).
-    const maskPhone = <%- maskPhone.toString() %>;
+    // WhatsApp icin uluslararasi numara (rakamlar): "0171..." -> "49171...", "+49 (0)152..." -> "49152...".
+    const waNumber = (raw) => {
+      const text = String(raw || '').trim();
+      let digits = text.replace(/\D/g, '');
+      if (!digits) return '';
+      if (digits.startsWith('00')) digits = digits.slice(2);
+      else if (!text.startsWith('+')) digits = '49' + digits.replace(/^0+/, '');
+      return digits.replace(/^490+/, '49');
+    };
+    // Davet linkini hazir metinle gonderme dugmeleri (telefon / e-posta varsa).
+    function sendButtons(g) {
+      const off = (label) => `<span class="gl-send-btn is-off" title="${esc(tx('list.sendOwnerOnly'))}">${esc(label)}</span>`;
+      const text = tx('list.inviteMessage', { name: g.name, url: g.url });
+      const out = [];
+      if (g.hasPhone) {
+        const nr = g.can && g.url ? waNumber(g.phone) : '';
+        out.push(nr
+          ? `<a class="gl-send-btn wa" target="_blank" rel="noopener noreferrer" href="https://wa.me/${nr}?text=${encodeURIComponent(text)}" title="${esc(tx('list.sendWhatsappTitle'))}">WhatsApp</a>`
+          : off('WhatsApp'));
+      }
+      if (g.hasEmail) {
+        out.push(g.can && g.url && g.email
+          ? `<a class="gl-send-btn mail" href="mailto:${encodeURIComponent(g.email).replace('%40', '@')}?subject=${encodeURIComponent(tx('list.inviteSubject'))}&body=${encodeURIComponent(text)}" title="${esc(tx('list.sendEmailTitle'))}">${esc(tx('common.email'))}</a>`
+          : off(tx('common.email')));
+      }
+      return out.join('');
+    }
     const hay = (g) => (g._hay ??= norm([g.name, g.phone, g.email, g.city, g.note, g.owner].join(' ')));
     function filtered() {
       const tokens = norm(st.q).split(/\s+/).filter(Boolean);
@@ -486,17 +498,14 @@
       return badge + note;
     }
     function rowHtml(g) {
-      const contact = [
-        g.phoneMasked ? `<span class="gl-phone">${esc(g.phoneMasked)}</span>` : '',
-        g.email ? `<a href="mailto:${esc(g.email)}">${esc(g.email)}</a>` : ''
-      ].filter(Boolean).join('<span> · </span>');
+      const contact = sendButtons(g);
       const actions = [
         g.url ? `<button type="button" class="gl-act" data-act="copy" title="${esc(g.url)}">${esc(tx('list.inviteLink'))}</button>` : '',
         g.can ? `<button type="button" class="gl-act" data-act="edit">${esc(tx('common.edit'))}</button>` : '',
         g.can ? `<button type="button" class="gl-act danger" data-act="del">${esc(tx('common.delete'))}</button>` : ''
       ].join('');
       return `<tr class="gl-row${rsvpState(g) === 'no' ? ' is-declined' : ''}" data-id="${g.id}">
-        <td class="gl-c-name"><p class="gl-name">${esc(g.name)}</p>${contact ? `<p class="gl-contact">${contact}</p>` : ''}</td>
+        <td class="gl-c-name"><p class="gl-name">${esc(g.name)}</p>${contact ? `<div class="gl-send">${contact}</div>` : ''}</td>
         <td class="gl-c-city">${g.city ? esc(g.city) : '<span class="gl-muted">—</span>'}</td>
         <td class="gl-c-status">${statusCell(g)}</td>
         <td class="gl-c-rsvp">${rsvpCell(g)}</td>
@@ -729,7 +738,8 @@
         try {
           await api(`/api/guest/${g.id}`, 'POST', body);
           Object.assign(g, body);
-          g.phoneMasked = maskPhone(g.phone);
+          g.hasPhone = !!waNumber(g.phone);
+          g.hasEmail = String(g.email || '').includes('@');
           // Sunucu sahipsiz kaydi duzenleyen kullaniciya atar.
           if (g.uid == null && CFG.meId) { g.uid = CFG.meId; g.owner = CFG.meName; }
           delete g._hay;

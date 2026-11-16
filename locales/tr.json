@@ -194,7 +194,12 @@
       "csvNote": "LCV Notu",
       "csvLink": "Davet Linki",
       "csvFile": "davetli-listesi",
-      "exported": "{{n}} kayıt indirildi"
+      "exported": "{{n}} kayıt indirildi",
+      "inviteMessage": "Merhaba {{name}}, düğünümüze davetlisiniz. Katılıp katılamayacağınızı lütfen bu linkten bildirin: {{url}}",
+      "inviteSubject": "Düğün davetiyesi",
+      "sendWhatsappTitle": "Davet linkini WhatsApp ile gönder",
+      "sendEmailTitle": "Davet linkini e-posta ile gönder",
+      "sendOwnerOnly": "Bilgi kayıtlı. Yalnızca kaydın sahibi veya admin gönderebilir."
     },
     "flow": {
       "title": "Gün Akışı",

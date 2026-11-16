@@ -1308,6 +1308,53 @@ tr.guest-row-rsvp-declined:hover {
     overflow-wrap: anywhere;
 }
 
+.gl-send {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.3rem;
+}
+
+.gl-send-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.12rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.4;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.gl-send-btn.wa {
+    background: #dcfce7;
+    border-color: #86efac;
+    color: #166534;
+}
+
+.gl-send-btn.wa:hover {
+    background: #bbf7d0;
+}
+
+.gl-send-btn.mail {
+    background: #e0e7ff;
+    border-color: #a5b4fc;
+    color: #3730a3;
+}
+
+.gl-send-btn.mail:hover {
+    background: #c7d2fe;
+}
+
+.gl-send-btn.is-off {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+    color: #94a3b8;
+    cursor: default;
+}
+
 .gl-contact a {
     color: var(--gl-mute);
     text-decoration: none;

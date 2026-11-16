@@ -194,7 +194,12 @@
       "csvNote": "Note",
       "csvLink": "Invitation link",
       "csvFile": "guest-list",
-      "exported": "{{n}} entries downloaded"
+      "exported": "{{n}} entries downloaded",
+      "inviteMessage": "Hello {{name}}, you are warmly invited to our wedding. Please let us know through this link whether you can come: {{url}}",
+      "inviteSubject": "Wedding invitation",
+      "sendWhatsappTitle": "Send the invitation link by WhatsApp",
+      "sendEmailTitle": "Send the invitation link by email",
+      "sendOwnerOnly": "On file. Only the record's owner or an admin can send."
     },
     "flow": {
       "title": "Schedule",
