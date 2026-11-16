@@ -556,7 +556,7 @@ app.get("/list", requireLogin, async (req, res) => {
     const admin = isAdmin(req);
     const baseUrl = getPublicBaseUrl(req);
     const guestSql = viewer
-      ? `SELECT g.id, g.name, g.city, g.status, g.user_id, g.invite_token, g.party_size, g.rsvp_note, g.rsvp_at, u.username AS kullanici
+      ? `SELECT g.id, g.name, g.phone, g.city, g.status, g.user_id, g.invite_token, g.party_size, g.rsvp_note, g.rsvp_at, u.username AS kullanici
          FROM guests g
          LEFT JOIN users u ON u.id = g.user_id
          ORDER BY g.name ASC, g.id ASC`
