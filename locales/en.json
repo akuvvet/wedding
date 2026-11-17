@@ -4,6 +4,7 @@
     "lang": "en"
   },
   "rsvp": {
+    "parents": "Parents",
     "headerBadge": "PERSONAL WEDDING INVITATION",
     "intro": "Please fill in the form to let us know whether you can come.",
     "successPage": "Your response has been saved. Thank you!",

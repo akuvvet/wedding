@@ -4,6 +4,7 @@
     "lang": "tr"
   },
   "rsvp": {
+    "parents": "Ebeveynler",
     "headerBadge": "Özel DÜGÜN DAVETIYESI",
     "intro": "Lütfen aşağıdaki formu doldurarak bize haber verin.",
     "successPage": "Yanıtınız kaydedildi. Teşekkür ederiz!",

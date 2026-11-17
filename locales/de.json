@@ -4,6 +4,7 @@
     "lang": "de"
   },
   "rsvp": {
+    "parents": "Eltern",
     "headerBadge": "PERSÖNLICHE HOCHZEITSEINLADUNG",
     "intro": "Bitte füllen Sie das Formular aus und geben Sie uns Bescheid.",
     "successPage": "Ihre Antwort wurde gespeichert. Vielen Dank!",
