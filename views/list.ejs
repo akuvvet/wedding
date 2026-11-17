@@ -39,6 +39,7 @@
         sentVia: g.invite_sent_via || "",
         openedAt: g.invite_opened_at || null,
         opens: Number(g.invite_open_count || 0),
+        copiedAt: g.invite_copied_at || null,
         url: g.invite_token ? `${base}/davet/${g.invite_token}` : "",
         can
       };
@@ -522,14 +523,17 @@
       if (g.rsvp && !g.sentAt && !g.openedAt) return '';
       const day = (d) => new Date(d).toLocaleDateString(DATE_LOCALE, { day: '2-digit', month: '2-digit' });
       const full = (d) => new Date(d).toLocaleString(DATE_LOCALE, { dateStyle: 'medium', timeStyle: 'short' });
-      const via = { whatsapp: 'WhatsApp', email: tx('common.email'), manual: tx('list.viaManual') }[g.sentVia] || '';
+      const vias = String(g.sentVia || '').split(',').filter(Boolean);
+      const via = vias.map((x) => ({ whatsapp: 'WhatsApp', email: tx('common.email'), manual: tx('list.viaManual') }[x] || '')).filter(Boolean).join(' + ');
+      // Renk gonderim yoluna gore: WhatsApp yesil, e-posta mor, ikisi birden yari yariya.
+      const viaClass = vias.includes('whatsapp') ? (vias.includes('email') ? ' via-both' : ' via-wa') : (vias.includes('email') ? ' via-mail' : '');
       const out = [];
       if (g.sentAt) {
         const title = tx('list.trackSentTitle', { date: full(g.sentAt), via }) + (g.can ? ' ' + tx('list.trackUnmark') : '');
         const label = `${esc(tx('list.trackSent'))} · ${day(g.sentAt)}`;
         out.push(g.can
-          ? `<button type="button" class="gl-track-chip is-sent" data-act="sent" title="${esc(title)}">${label}</button>`
-          : `<span class="gl-track-chip is-sent" title="${esc(title)}">${label}</span>`);
+          ? `<button type="button" class="gl-track-chip is-sent${viaClass}" data-act="sent" title="${esc(title)}">${label}</button>`
+          : `<span class="gl-track-chip is-sent${viaClass}" title="${esc(title)}">${label}</span>`);
       } else if (g.openedAt) {
         out.push(`<span class="gl-track-chip is-sent" title="${esc(tx('list.trackSentImplied'))}">${esc(tx('list.trackSent'))}</span>`);
       } else {
@@ -548,7 +552,7 @@
     function rowHtml(g) {
       const contact = sendButtons(g);
       const actions = [
-        g.url ? `<button type="button" class="gl-act" data-act="copy" title="${esc(g.url)}">${esc(tx('list.inviteLink'))}</button>` : '',
+        g.url ? `<button type="button" class="gl-act link${g.copiedAt ? ' is-copied' : ''}" data-act="copy" title="${esc(g.url)}">${esc(tx('list.inviteLink'))}</button>` : '',
         g.can ? `<button type="button" class="gl-act" data-act="edit">${esc(tx('common.edit'))}</button>` : '',
         g.can ? `<button type="button" class="gl-act danger" data-act="del">${esc(tx('common.delete'))}</button>` : ''
       ].join('');
@@ -668,7 +672,8 @@
         const via = btn.dataset.via;
         const before = { sentAt: g.sentAt, sentVia: g.sentVia };
         g.sentAt = new Date().toISOString();
-        g.sentVia = via;
+        const known = String(g.sentVia || '').split(',').concat(via);
+        g.sentVia = ['whatsapp', 'email'].filter((x) => known.includes(x)).join(',');
         setTimeout(refreshAll, 0);
         fetch(BASE + `/api/guest/${g.id}/sent`, {
           method: 'POST',
@@ -695,7 +700,16 @@
           refreshAll();
           toast(on ? tx('list.trackMarked', { name: g.name }) : tx('list.trackUnmarked', { name: g.name }));
         } else if (act === 'copy') {
-          toast((await copyText(g.url)) ? tx('list.linkCopied', { name: g.name }) : tx('list.linkCopyFailed'), false);
+          const ok = await copyText(g.url);
+          toast(ok ? tx('list.linkCopied', { name: g.name }) : tx('list.linkCopyFailed'), false);
+          if (ok && !g.copiedAt) {
+            g.copiedAt = new Date().toISOString();
+            render();
+            // Kalici isaret yalnizca kaydi yonetebilen kullanici icin saklanir.
+            if (g.can) {
+              fetch(BASE + `/api/guest/${g.id}/copied`, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: '{}' }).catch(() => {});
+            }
+          }
         } else if (act === 'status') {
           const v = Number(btn.dataset.v);
           if (v === g.status || btn.disabled) return;

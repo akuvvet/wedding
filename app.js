@@ -249,6 +249,9 @@ async function ensureGuestRsvpColumns() {
   if (!names.has("invite_open_count")) {
     await pool.query("ALTER TABLE guests ADD COLUMN invite_open_count INT UNSIGNED NOT NULL DEFAULT 0");
   }
+  if (!names.has("invite_copied_at")) {
+    await pool.query("ALTER TABLE guests ADD COLUMN invite_copied_at TIMESTAMP NULL DEFAULT NULL");
+  }
   const [indexes] = await pool.query("SHOW INDEX FROM guests WHERE Key_name = 'idx_guests_invite_token'");
   if (!indexes.length) {
     await pool.query("CREATE UNIQUE INDEX idx_guests_invite_token ON guests (invite_token)");
@@ -581,11 +584,11 @@ app.get("/list", requireLogin, async (req, res) => {
     const admin = isAdmin(req);
     const baseUrl = getPublicBaseUrl(req);
     const guestSql = viewer
-      ? `SELECT g.id, g.name, g.phone, g.email, g.city, g.status, g.user_id, g.invite_token, g.party_size, g.rsvp_note, g.rsvp_at, g.invite_sent_at, g.invite_sent_via, g.invite_opened_at, g.invite_open_count, u.username AS kullanici
+      ? `SELECT g.id, g.name, g.phone, g.email, g.city, g.status, g.user_id, g.invite_token, g.party_size, g.rsvp_note, g.rsvp_at, g.invite_sent_at, g.invite_sent_via, g.invite_opened_at, g.invite_open_count, g.invite_copied_at, u.username AS kullanici
          FROM guests g
          LEFT JOIN users u ON u.id = g.user_id
          ORDER BY g.name ASC, g.id ASC`
-      : `SELECT g.id, g.name, g.phone, g.email, g.city, g.status, g.user_id, g.invite_token, g.party_size, g.rsvp_note, g.rsvp_at, g.invite_sent_at, g.invite_sent_via, g.invite_opened_at, g.invite_open_count, u.username AS kullanici
+      : `SELECT g.id, g.name, g.phone, g.email, g.city, g.status, g.user_id, g.invite_token, g.party_size, g.rsvp_note, g.rsvp_at, g.invite_sent_at, g.invite_sent_via, g.invite_opened_at, g.invite_open_count, g.invite_copied_at, u.username AS kullanici
          FROM guests g
          LEFT JOIN users u ON u.id = g.user_id
          ORDER BY g.name ASC, g.id ASC`;
@@ -864,6 +867,28 @@ async function handleGuestSave(req, res) {
 app.put("/api/guest/:id", requireEditor, handleGuestSave);
 app.post("/api/guest/:id", requireEditor, handleGuestSave);
 
+// Davet linki kopyalandiginda isaretlenir (listede dugme yesil gorunur).
+app.post("/api/guest/:id/copied", requireEditor, async (req, res) => {
+  const id = Number(req.params.id || 0);
+  if (!id) {
+    return res.status(422).json({ success: false, message: req.t("panel.api.invalidData") });
+  }
+  try {
+    const [rows] = await pool.query("SELECT user_id FROM guests WHERE id = ? LIMIT 1", [id]);
+    const guest = rows[0];
+    if (!guest) {
+      return res.status(404).json({ success: false, message: req.t("panel.api.notFound") });
+    }
+    if (!canManageGuest(req, guest.user_id == null ? null : Number(guest.user_id))) {
+      return res.status(403).json({ success: false, message: req.t("panel.api.noUpdatePermission") });
+    }
+    await pool.query("UPDATE guests SET invite_copied_at = COALESCE(invite_copied_at, CURRENT_TIMESTAMP) WHERE id = ?", [id]);
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: req.t("panel.api.serverError", { msg: err.message }) });
+  }
+});
+
 // Davet "gonderildi" isareti: listede WhatsApp / e-posta dugmesine basilinca ya da elle konur / kaldirilir.
 app.post("/api/guest/:id/sent", requireEditor, async (req, res) => {
   const id = Number(req.params.id || 0);
@@ -881,12 +906,21 @@ app.post("/api/guest/:id/sent", requireEditor, async (req, res) => {
     if (!canManageGuest(req, guest.user_id == null ? null : Number(guest.user_id))) {
       return res.status(403).json({ success: false, message: req.t("panel.api.noUpdatePermission") });
     }
+    let value = null;
     if (sent) {
-      await pool.query("UPDATE guests SET invite_sent_at = CURRENT_TIMESTAMP, invite_sent_via = ? WHERE id = ?", [via, id]);
+      // WhatsApp ve e-posta birlikte tutulur ("whatsapp,email"); elle konan isaret tek basina durur.
+      value = via;
+      if (via !== "manual") {
+        const [cur] = await pool.query("SELECT invite_sent_via FROM guests WHERE id = ? LIMIT 1", [id]);
+        const known = new Set(String((cur[0] && cur[0].invite_sent_via) || "").split(","));
+        known.add(via);
+        value = ["whatsapp", "email"].filter((v) => known.has(v)).join(",");
+      }
+      await pool.query("UPDATE guests SET invite_sent_at = CURRENT_TIMESTAMP, invite_sent_via = ? WHERE id = ?", [value, id]);
     } else {
       await pool.query("UPDATE guests SET invite_sent_at = NULL, invite_sent_via = NULL WHERE id = ?", [id]);
     }
-    return res.json({ success: true, sent });
+    return res.json({ success: true, sent, via: value });
   } catch (err) {
     return res.status(500).json({ success: false, message: req.t("panel.api.serverError", { msg: err.message }) });
   }
