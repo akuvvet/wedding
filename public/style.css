@@ -769,20 +769,46 @@ tr.guest-row-editing {
 }
 
 .rsvp-calendar-suggest {
-    padding: 1rem 1.1rem;
-    border-radius: 0.65rem;
-    border: 1px solid rgba(201, 169, 98, 0.22);
-    background: rgba(201, 169, 98, 0.05);
+    padding: 1.15rem 1.15rem 1.2rem;
+    border-radius: 0.8rem;
+    border: 1.5px solid #d4af37;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.24), rgba(212, 175, 55, 0.08));
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.1), 0 10px 28px rgba(212, 175, 55, 0.16);
     display: flex;
     flex-direction: column;
+    gap: 0.9rem;
+    animation: rsvp-thanks-in 0.45s ease-out 0.15s backwards;
+}
+
+.rsvp-calendar-head {
+    display: flex;
+    align-items: flex-start;
     gap: 0.75rem;
+}
+
+.rsvp-calendar-icon {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 0.6rem;
+    background: #d4af37;
+    color: #1a1510;
 }
 
 .rsvp-calendar-title {
     margin: 0;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: #e8d5a8;
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: #fdf3d3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rsvp-calendar-suggest {
+        animation: none;
+    }
 }
 
 .rsvp-calendar-meta {
@@ -802,11 +828,12 @@ tr.guest-row-editing {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0.5rem 0.9rem;
-    border-radius: 0.45rem;
-    background: linear-gradient(135deg, #c9a962 0%, #a8862e 100%);
+    flex: 1 1 8rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: 0.5rem;
+    background: linear-gradient(135deg, #e3c466 0%, #b8922f 100%);
     color: #1a1510;
-    font-size: 0.75rem;
+    font-size: 0.82rem;
     font-weight: 600;
     letter-spacing: 0.04em;
     text-decoration: none;
@@ -819,8 +846,8 @@ tr.guest-row-editing {
 
 .rsvp-calendar-btn-secondary {
     background: transparent;
-    color: #c9a962;
-    border: 1px solid rgba(201, 169, 98, 0.4);
+    color: #e3c466;
+    border: 1px solid rgba(212, 175, 55, 0.7);
 }
 
 .rsvp-calendar-btn-secondary:hover {

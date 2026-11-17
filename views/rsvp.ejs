@@ -55,6 +55,23 @@
         <div id="rsvpError" class="rsvp-alert rsvp-alert-error hidden"></div>
         <div id="rsvpSuccess" class="rsvp-alert rsvp-alert-success hidden"></div>
 
+        <div id="calendarSuggest" class="rsvp-calendar-suggest" hidden>
+          <div class="rsvp-calendar-head">
+            <span class="rsvp-calendar-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1zm13 8H4v9a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-9zm-8.6 7.2-2.6-2.6 1.4-1.4 1.2 1.2 3.4-3.4 1.4 1.4-4.8 4.8z"/></svg>
+            </span>
+            <div>
+              <p class="rsvp-calendar-title"><%= t('rsvp.calendarTitle') %></p>
+              <p class="rsvp-calendar-meta"><%= calendar.title %> · 16.01.2027 · 16:00 – 23:00</p>
+              <p class="rsvp-calendar-meta"><%= calendar.location %></p>
+            </div>
+          </div>
+          <div class="rsvp-calendar-actions">
+            <a id="googleCalendarBtn" class="rsvp-calendar-btn" href="#" target="_blank" rel="noopener noreferrer"><%= t('rsvp.googleCalendar') %></a>
+            <a class="rsvp-calendar-btn rsvp-calendar-btn-secondary" href="<%= typeof basePath !== 'undefined' ? basePath : '' %>/davet/<%= token %>/takvim.ics"><%= t('rsvp.downloadIcs') %></a>
+          </div>
+        </div>
+
         <form id="rsvpForm" class="rsvp-form" novalidate>
           <input type="hidden" id="guestId" name="guest_id" value="<%= guest.id %>">
 
@@ -99,18 +116,6 @@
             <%= t('rsvp.submit') %>
           </button>
         </form>
-
-        <div id="calendarSuggest" class="rsvp-calendar-suggest" hidden>
-          <div>
-            <p class="rsvp-calendar-title"><%= t('rsvp.calendarTitle') %></p>
-            <p class="rsvp-calendar-meta"><%= calendar.title %> · 16.01.2027 · 16:00 – 23:00</p>
-            <p class="rsvp-calendar-meta"><%= calendar.location %></p>
-          </div>
-          <div class="rsvp-calendar-actions">
-            <a id="googleCalendarBtn" class="rsvp-calendar-btn" href="#" target="_blank" rel="noopener noreferrer"><%= t('rsvp.googleCalendar') %></a>
-            <a class="rsvp-calendar-btn rsvp-calendar-btn-secondary" href="<%= typeof basePath !== 'undefined' ? basePath : '' %>/davet/<%= token %>/takvim.ics"><%= t('rsvp.downloadIcs') %></a>
-          </div>
-        </div>
 
         <% if (guest.rsvp_at) { %>
         <p class="rsvp-footer-note">
@@ -178,11 +183,14 @@
     return checked ? checked.value : '';
   }
 
+  // Takvim kutusu yalnizca katilim kaydedildikten sonra (tesekkurun altinda) gorunur.
+  let attendanceSaved = false;
+
   // Secime gore: kisi sayisi alani, buton metni ve takvim kutusu.
   function applyChoice() {
     const choice = currentChoice();
     partySizeWrap.hidden = choice !== 'yes';
-    if (calendarSuggest) calendarSuggest.hidden = choice !== 'yes';
+    if (calendarSuggest) calendarSuggest.hidden = !(choice === 'yes' && attendanceSaved);
     submitBtn.textContent = choice === 'no' ? I18N.submitDecline : I18N.submit;
   }
 
@@ -201,7 +209,9 @@
     rsvpSuccess.textContent = msg;
     rsvpSuccess.classList.remove('hidden');
     rsvpError.classList.add('hidden');
-    rsvpSuccess.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Takvim kutusu gorunuyorsa tesekkurle birlikte ekrana sigsin.
+    const target = calendarSuggest && !calendarSuggest.hidden ? calendarSuggest : rsvpSuccess;
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
   function clearMessages() {
     rsvpError.classList.add('hidden');
@@ -213,6 +223,7 @@
   if (Number(INITIAL_GUEST.status) === 3) {
     setChoice('no');
   } else if (SHOW_CALENDAR_INIT || initialSize > 0) {
+    attendanceSaved = true;
     setChoice('yes');
   } else {
     setChoice('');
@@ -261,7 +272,9 @@
         return;
       }
       if (data.guest?.name) selectedGuestName.textContent = data.guest.name;
+      attendanceSaved = !decline;
       if (Number(data.guest?.status) === 3 || Number(data.guest?.party_size) === 0) {
+        attendanceSaved = false;
         setChoice('no');
       } else if (data.guest) {
         buildPartySizeOptions(Number(data.guest.party_size || 0));
