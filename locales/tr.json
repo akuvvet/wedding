@@ -5,6 +5,8 @@
   },
   "rsvp": {
     "parents": "Ebeveynler",
+    "route": "Yol tarifi",
+    "routeTitle": "Google Haritalar'da yol tarifi al",
     "headerBadge": "Özel DÜGÜN DAVETIYESI",
     "intro": "Lütfen aşağıdaki formu doldurarak bize haber verin.",
     "successPage": "Yanıtınız kaydedildi. Teşekkür ederiz!",

@@ -5,6 +5,8 @@
   },
   "rsvp": {
     "parents": "Eltern",
+    "route": "Route planen",
+    "routeTitle": "Route in Google Maps berechnen",
     "headerBadge": "PERSÖNLICHE HOCHZEITSEINLADUNG",
     "intro": "Bitte füllen Sie das Formular aus und geben Sie uns Bescheid.",
     "successPage": "Ihre Antwort wurde gespeichert. Vielen Dank!",

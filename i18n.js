@@ -83,16 +83,25 @@ function guestLocaleMiddleware(req, res, next) {
   next();
 }
 
+// Dugun salonu: adres, yol tarifi linki, takvim kaydindaki yol suresi ve hatirlatma.
+const WEDDING_VENUE = {
+  location: "Obergath 154, 47805 Krefeld-Fischeln",
+  travelMinutes: 30,
+  reminderDays: 1
+};
+WEDDING_VENUE.mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(WEDDING_VENUE.location)}`;
+
 function getWeddingCalendar(locale) {
   const t = createTranslator(locale);
   return {
+    ...WEDDING_VENUE,
     title: t("calendar.title"),
     description: t("calendar.description"),
     icsFilename: t("calendar.icsFilename"),
     date: "20270116",
     start: "160000",
     end: "230000",
-    timezone: "Europe/Istanbul"
+    timezone: "Europe/Berlin"
   };
 }
 

@@ -352,6 +352,36 @@ tr.guest-row-editing {
     background: linear-gradient(180deg, transparent, #c9a962, transparent);
 }
 
+.rsvp-venue {
+    margin: 1.1rem auto 0;
+}
+
+.rsvp-venue-address {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    color: #f5efe3;
+}
+
+.rsvp-venue-route {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+    padding: 0.35rem 0.9rem;
+    border: 1px solid rgba(201, 169, 98, 0.55);
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: #d4af37;
+    text-decoration: none;
+}
+
+.rsvp-venue-route:hover {
+    background: rgba(201, 169, 98, 0.14);
+}
+
 .rsvp-intro {
     margin: 1rem auto 0;
     max-width: 22rem;

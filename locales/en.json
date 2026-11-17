@@ -5,6 +5,8 @@
   },
   "rsvp": {
     "parents": "Parents",
+    "route": "Directions",
+    "routeTitle": "Get directions in Google Maps",
     "headerBadge": "PERSONAL WEDDING INVITATION",
     "intro": "Please fill in the form to let us know whether you can come.",
     "successPage": "Your response has been saved. Thank you!",

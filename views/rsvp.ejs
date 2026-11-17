@@ -35,6 +35,13 @@
             <p class="rsvp-parents-side">Selma, Abdullah<span class="rsvp-parents-family">Kuvvet</span></p>
           </div>
         </div>
+        <div class="rsvp-venue">
+          <p class="rsvp-venue-address"><%= calendar.location %></p>
+          <a class="rsvp-venue-route" href="<%= calendar.mapsUrl %>" target="_blank" rel="noopener noreferrer" title="<%= t('rsvp.routeTitle') %>">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
+            <span><%= t('rsvp.route') %></span>
+          </a>
+        </div>
         <p class="rsvp-intro"><%= t('rsvp.intro') %></p>
       </div>
 
@@ -97,6 +104,7 @@
           <div>
             <p class="rsvp-calendar-title"><%= t('rsvp.calendarTitle') %></p>
             <p class="rsvp-calendar-meta"><%= calendar.title %> · 16.01.2027 · 16:00 – 23:00</p>
+            <p class="rsvp-calendar-meta"><%= calendar.location %></p>
           </div>
           <div class="rsvp-calendar-actions">
             <a id="googleCalendarBtn" class="rsvp-calendar-btn" href="#" target="_blank" rel="noopener noreferrer"><%= t('rsvp.googleCalendar') %></a>
@@ -137,7 +145,9 @@
       action: 'TEMPLATE',
       text: WEDDING_CALENDAR.title,
       dates: `${WEDDING_CALENDAR.date}T${WEDDING_CALENDAR.start}/${WEDDING_CALENDAR.date}T${WEDDING_CALENDAR.end}`,
-      ctz: WEDDING_CALENDAR.timezone
+      ctz: WEDDING_CALENDAR.timezone,
+      location: WEDDING_CALENDAR.location,
+      details: `${WEDDING_CALENDAR.description}\n${WEDDING_CALENDAR.location}\n${WEDDING_CALENDAR.mapsUrl}`
     });
     return `https://calendar.google.com/calendar/render?${params.toString()}`;
   }
