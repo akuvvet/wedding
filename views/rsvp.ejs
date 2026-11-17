@@ -248,7 +248,7 @@
   if (Number(INITIAL_GUEST.status) === 3) {
     setChoice('no');
   } else if (SHOW_CALENDAR_INIT || initialSize > 0) {
-    attendanceSaved = true;
+    // Onceden kayitli katilim: form dolu gelir, takvim yine de ancak onaydan sonra gorunur.
     setChoice('yes');
   } else {
     setChoice('');
