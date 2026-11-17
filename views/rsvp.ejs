@@ -55,7 +55,9 @@
         <div id="rsvpError" class="rsvp-alert rsvp-alert-error hidden"></div>
         <div id="rsvpSuccess" class="rsvp-alert rsvp-alert-success hidden"></div>
 
+        <div id="calendarBackdrop" class="rsvp-calendar-backdrop" hidden></div>
         <div id="calendarSuggest" class="rsvp-calendar-suggest" hidden>
+          <button type="button" id="calendarClose" class="rsvp-calendar-close" aria-label="<%= t('rsvp.calendarLater') %>">&times;</button>
           <div class="rsvp-calendar-head">
             <span class="rsvp-calendar-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1zm13 8H4v9a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-9zm-8.6 7.2-2.6-2.6 1.4-1.4 1.2 1.2 3.4-3.4 1.4 1.4-4.8 4.8z"/></svg>
@@ -70,6 +72,7 @@
             <a id="googleCalendarBtn" class="rsvp-calendar-btn" href="#" target="_blank" rel="noopener noreferrer"><%= t('rsvp.googleCalendar') %></a>
             <a class="rsvp-calendar-btn rsvp-calendar-btn-secondary" href="<%= typeof basePath !== 'undefined' ? basePath : '' %>/davet/<%= token %>/takvim.ics"><%= t('rsvp.downloadIcs') %></a>
           </div>
+          <button type="button" id="calendarLater" class="rsvp-calendar-later"><%= t('rsvp.calendarLater') %></button>
         </div>
 
         <form id="rsvpForm" class="rsvp-form" novalidate>
@@ -183,14 +186,38 @@
     return checked ? checked.value : '';
   }
 
-  // Takvim kutusu yalnizca katilim kaydedildikten sonra (tesekkurun altinda) gorunur.
+  // Takvim kutusu yalnizca katilim kaydedildikten sonra gorunur: kayittan hemen sonra
+  // ekranin ortasinda pencere olarak acilir, kapatilinca tesekkurun altinda kalir.
   let attendanceSaved = false;
+  const calendarBackdrop = document.getElementById('calendarBackdrop');
+  let calendarTimer = null;
+  function openCalendarModal() {
+    if (!calendarSuggest || calendarSuggest.hidden) return;
+    calendarSuggest.classList.add('is-modal');
+    calendarBackdrop.hidden = false;
+  }
+  function closeCalendarModal() {
+    clearTimeout(calendarTimer);
+    if (!calendarSuggest) return;
+    calendarSuggest.classList.remove('is-modal');
+    calendarBackdrop.hidden = true;
+  }
+  if (calendarSuggest) {
+    calendarBackdrop.addEventListener('click', closeCalendarModal);
+    document.getElementById('calendarClose').addEventListener('click', closeCalendarModal);
+    document.getElementById('calendarLater').addEventListener('click', closeCalendarModal);
+    calendarSuggest.querySelectorAll('.rsvp-calendar-btn').forEach((btn) => btn.addEventListener('click', () => setTimeout(closeCalendarModal, 300)));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCalendarModal(); });
+  }
 
   // Secime gore: kisi sayisi alani, buton metni ve takvim kutusu.
   function applyChoice() {
     const choice = currentChoice();
     partySizeWrap.hidden = choice !== 'yes';
-    if (calendarSuggest) calendarSuggest.hidden = !(choice === 'yes' && attendanceSaved);
+    if (calendarSuggest) {
+      calendarSuggest.hidden = !(choice === 'yes' && attendanceSaved);
+      if (calendarSuggest.hidden) closeCalendarModal();
+    }
     submitBtn.textContent = choice === 'no' ? I18N.submitDecline : I18N.submit;
   }
 
@@ -209,9 +236,7 @@
     rsvpSuccess.textContent = msg;
     rsvpSuccess.classList.remove('hidden');
     rsvpError.classList.add('hidden');
-    // Takvim kutusu gorunuyorsa tesekkurle birlikte ekrana sigsin.
-    const target = calendarSuggest && !calendarSuggest.hidden ? calendarSuggest : rsvpSuccess;
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    rsvpSuccess.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
   function clearMessages() {
     rsvpError.classList.add('hidden');
@@ -281,6 +306,8 @@
         setChoice('yes');
       }
       showSuccess(data.message || (decline ? I18N.declineSaved : I18N.attendanceSaved));
+      // Once tesekkur gorunsun, ardindan takvim penceresi acilsin.
+      if (attendanceSaved) calendarTimer = setTimeout(openCalendarModal, 1200);
     } catch (err) {
       showError(I18N.connectionError);
     } finally {

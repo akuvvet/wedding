@@ -780,6 +780,65 @@ tr.guest-row-editing {
     animation: rsvp-thanks-in 0.45s ease-out 0.15s backwards;
 }
 
+.rsvp-calendar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(5, 4, 3, 0.78);
+}
+
+.rsvp-calendar-suggest {
+    position: relative;
+}
+
+.rsvp-calendar-suggest.is-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    margin: auto;
+    box-sizing: border-box;
+    width: min(26rem, calc(100% - 2rem));
+    height: fit-content;
+    max-height: calc(100% - 2rem);
+    overflow-y: auto;
+    padding: 1.4rem 1.25rem 1.1rem;
+    background: linear-gradient(135deg, #3a2f14, #1f1a10);
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.14), 0 24px 60px rgba(0, 0, 0, 0.7);
+    animation: rsvp-thanks-in 0.35s ease-out;
+}
+
+.rsvp-calendar-close,
+.rsvp-calendar-later {
+    display: none;
+    border: 0;
+    background: none;
+    color: #d9cba4;
+    cursor: pointer;
+    font: inherit;
+}
+
+.rsvp-calendar-suggest.is-modal .rsvp-calendar-close {
+    display: block;
+    position: absolute;
+    top: 0.3rem;
+    right: 0.5rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.rsvp-calendar-suggest.is-modal .rsvp-calendar-later {
+    display: block;
+    align-self: center;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.85rem;
+    text-decoration: underline;
+}
+
+.rsvp-calendar-suggest.is-modal .rsvp-calendar-head {
+    padding-right: 1.5rem;
+}
+
 .rsvp-calendar-head {
     display: flex;
     align-items: flex-start;
