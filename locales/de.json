@@ -199,7 +199,7 @@
       "csvLink": "Einladungslink",
       "csvFile": "gaesteliste",
       "exported": "{{n}} Einträge heruntergeladen",
-      "inviteMessage": "Hallo {{name}}, Sie sind herzlich zu unserer Hochzeit eingeladen. Bitte geben Sie uns über diesen Link Bescheid, ob Sie kommen können: {{url}}",
+      "inviteMessage": "Hallo {{name}},\n\nWir feiern Hochzeit und freuen uns, Euch zu unseren Hochzeitsgästen zählen zu dürfen:\n\n{{url}}",
       "inviteSubject": "Einladung zur Hochzeit",
       "sendWhatsappTitle": "Einladungslink per WhatsApp senden",
       "sendEmailTitle": "Einladungslink per E-Mail senden",
