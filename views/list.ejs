@@ -435,6 +435,8 @@
       const off = (label) => `<span class="gl-send-btn is-off" title="${esc(tx('list.sendOwnerOnly'))}">${esc(label)}</span>`;
       // Link, mesajla ayni dilde acilsin diye panel dilini tasir.
       const text = tx('list.inviteMessage', { name: g.name, url: `${g.url}?lang=${LOCALE}` });
+      // E-posta programlari (or. Outlook) satir sonu olarak CRLF bekler; yalniz LF ile bos satirlar kaybolur.
+      const mailText = text.replace(/\r?\n/g, '\r\n');
       const out = [];
       if (g.hasPhone) {
         const nr = g.can && g.url ? waNumber(g.phone) : '';
@@ -444,7 +446,7 @@
       }
       if (g.hasEmail) {
         out.push(g.can && g.url && g.email
-          ? `<a class="gl-send-btn mail" href="mailto:${encodeURIComponent(g.email).replace('%40', '@')}?subject=${encodeURIComponent(tx('list.inviteSubject'))}&body=${encodeURIComponent(text)}" title="${esc(tx('list.sendEmailTitle'))}">${esc(tx('common.email'))}</a>`
+          ? `<a class="gl-send-btn mail" href="mailto:${encodeURIComponent(g.email).replace('%40', '@')}?subject=${encodeURIComponent(tx('list.inviteSubject'))}&body=${encodeURIComponent(mailText)}" title="${esc(tx('list.sendEmailTitle'))}">${esc(tx('common.email'))}</a>`
           : off(tx('common.email')));
       }
       return out.join('');
