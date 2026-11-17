@@ -1822,6 +1822,83 @@ tr.guest-row-rsvp-declined:hover {
     cursor: default;
 }
 
+/* Davet takibi: gonderildi / acildi isaretleri */
+.gl-track {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.3rem;
+}
+
+.gl-track-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.08rem 0.5rem;
+    border: 1px solid transparent;
+    border-radius: 0.35rem;
+    background: none;
+    font: inherit;
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.gl-track-chip::before {
+    content: "";
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+button.gl-track-chip {
+    cursor: pointer;
+}
+
+.gl-track-chip.is-off {
+    border: 1px dashed #cbd5e1;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.gl-track-chip.is-off::before {
+    background: none;
+    border: 1px solid currentColor;
+}
+
+button.gl-track-chip.is-off:hover {
+    border-color: #64748b;
+    color: #475569;
+}
+
+.gl-track-chip.is-sent {
+    background: #dbeafe;
+    border-color: #93c5fd;
+    color: #1e40af;
+}
+
+button.gl-track-chip.is-sent:hover {
+    background: #bfdbfe;
+}
+
+.gl-track-chip.is-opened {
+    background: #fef3c7;
+    border-color: #fcd34d;
+    color: #92400e;
+}
+
+.gl-chip.iv-sent.is-active {
+    background: #1e40af;
+    border-color: #1e40af;
+}
+
+.gl-chip.iv-opened.is-active {
+    background: #b45309;
+    border-color: #b45309;
+}
+
 .gl-contact a {
     color: var(--gl-mute);
     text-decoration: none;

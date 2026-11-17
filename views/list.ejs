@@ -35,6 +35,10 @@
         rsvp: !!g.rsvp_at,
         rsvpAt: g.rsvp_at || null,
         note: g.rsvp_note || "",
+        sentAt: g.invite_sent_at || null,
+        sentVia: g.invite_sent_via || "",
+        openedAt: g.invite_opened_at || null,
+        opens: Number(g.invite_open_count || 0),
         url: g.invite_token ? `${base}/davet/${g.invite_token}` : "",
         can
       };
@@ -144,6 +148,13 @@
           <button type="button" class="gl-chip s1" data-filter="rsvp" data-value="yes"><%= T('list.rsvpYes') %> <b data-count="rsvp-yes"></b></button>
           <button type="button" class="gl-chip s3" data-filter="rsvp" data-value="no"><%= T('list.rsvpNo') %> <b data-count="rsvp-no"></b></button>
           <button type="button" class="gl-chip" data-filter="rsvp" data-value="wait"><%= T('list.rsvpWait') %> <b data-count="rsvp-wait"></b></button>
+        </div>
+        <div class="gl-chips" role="group" aria-label="<%= T('list.inviteFilterAria') %>">
+          <span class="gl-chips-label"><%= T('list.inviteLabel') %></span>
+          <button type="button" class="gl-chip" data-filter="invite" data-value=""><%= T('common.all') %></button>
+          <button type="button" class="gl-chip" data-filter="invite" data-value="none"><%= T('list.inviteNone') %> <b data-count="invite-none"></b></button>
+          <button type="button" class="gl-chip iv-sent" data-filter="invite" data-value="sent"><%= T('list.inviteSentOnly') %> <b data-count="invite-sent"></b></button>
+          <button type="button" class="gl-chip iv-opened" data-filter="invite" data-value="opened"><%= T('list.inviteOpenedOnly') %> <b data-count="invite-opened"></b></button>
         </div>
       </div>
 
@@ -282,7 +293,10 @@
     // LCV durumu: yes = kisi sayisi bildirdi, no = gelmiyor, wait = henuz cevap yok
     const rsvpState = (g) => (g.party != null && g.party > 0 ? 'yes' : (g.rsvp && g.party === 0 ? 'no' : 'wait'));
 
-    const defaults = { q: '', status: '', rsvp: '', user: '', city: '', sortKey: 'name', sortDir: 1, page: 1, size: 25 };
+    // Davet durumu: done = cevapladi, opened = linki acti ama cevaplamadi, sent = gonderildi ama acilmadi, none = gonderilmedi
+    const inviteState = (g) => (g.rsvp ? 'done' : (g.openedAt ? 'opened' : (g.sentAt ? 'sent' : 'none')));
+
+    const defaults = { q: '', status: '', rsvp: '', invite: '', user: '', city: '', sortKey: 'name', sortDir: 1, page: 1, size: 25 };
     const st = { ...defaults };
     try {
       const saved = JSON.parse(sessionStorage.getItem(STORE_KEY) || 'null');
@@ -323,12 +337,14 @@
     function renderKpis() {
       const c = { 1: 0, 2: 0, 3: 0 };
       const r = { yes: 0, no: 0, wait: 0 };
+      const iv = { none: 0, sent: 0, opened: 0, done: 0 };
       let persons = 0;
       let waitingMust = 0;
       for (const g of GUESTS) {
         c[g.status] = (c[g.status] || 0) + 1;
         const rs = rsvpState(g);
         r[rs] += 1;
+        iv[inviteState(g)] += 1;
         if (rs === 'yes') persons += g.party;
         if (rs === 'wait' && g.status === 1) waitingMust += 1;
       }
@@ -354,7 +370,7 @@
       $('kpiOccupancyBar').style.width = occ + '%';
       $('glHeadSub').textContent = `${total} ${tx('list.guestsWord')} · ${persons} ${tx('list.personsConfirmedWord')} · ${tx('list.capacityWord')} ${CFG.capacity}`;
 
-      const counts = { 'status-1': c[1], 'status-2': c[2], 'status-3': c[3], 'rsvp-yes': r.yes, 'rsvp-no': r.no, 'rsvp-wait': r.wait };
+      const counts = { 'status-1': c[1], 'status-2': c[2], 'status-3': c[3], 'rsvp-yes': r.yes, 'rsvp-no': r.no, 'rsvp-wait': r.wait, 'invite-none': iv.none, 'invite-sent': iv.sent, 'invite-opened': iv.opened };
       document.querySelectorAll('[data-count]').forEach((el) => { el.textContent = counts[el.dataset.count] ?? ''; });
     }
 
@@ -441,12 +457,12 @@
       if (g.hasPhone) {
         const nr = g.can && g.url ? waNumber(g.phone) : '';
         out.push(nr
-          ? `<a class="gl-send-btn wa" target="_blank" rel="noopener noreferrer" href="https://wa.me/${nr}?text=${encodeURIComponent(text)}" title="${esc(tx('list.sendWhatsappTitle'))}">WhatsApp</a>`
+          ? `<a class="gl-send-btn wa" data-act="send" data-via="whatsapp" target="_blank" rel="noopener noreferrer" href="https://wa.me/${nr}?text=${encodeURIComponent(text)}" title="${esc(tx('list.sendWhatsappTitle'))}">WhatsApp</a>`
           : off('WhatsApp'));
       }
       if (g.hasEmail) {
         out.push(g.can && g.url && g.email
-          ? `<a class="gl-send-btn mail" href="mailto:${encodeURIComponent(g.email).replace('%40', '@')}?subject=${encodeURIComponent(tx('list.inviteSubject'))}&body=${encodeURIComponent(mailText)}" title="${esc(tx('list.sendEmailTitle'))}">${esc(tx('common.email'))}</a>`
+          ? `<a class="gl-send-btn mail" data-act="send" data-via="email" href="mailto:${encodeURIComponent(g.email).replace('%40', '@')}?subject=${encodeURIComponent(tx('list.inviteSubject'))}&body=${encodeURIComponent(mailText)}" title="${esc(tx('list.sendEmailTitle'))}">${esc(tx('common.email'))}</a>`
           : off(tx('common.email')));
       }
       return out.join('');
@@ -458,6 +474,7 @@
       return GUESTS.filter((g) => {
         if (status && g.status !== status) return false;
         if (st.rsvp && rsvpState(g) !== st.rsvp) return false;
+        if (st.invite && inviteState(g) !== st.invite) return false;
         if (st.user && (st.user === '__none__' ? g.uid != null : String(g.uid) !== st.user)) return false;
         if (st.city && (st.city === '__none__' ? !!g.city : g.city !== st.city)) return false;
         if (tokens.length) { const h = hay(g); if (!tokens.every((t) => h.includes(t))) return false; }
@@ -500,6 +517,34 @@
       const note = g.note ? `<p class="gl-note" title="${esc(g.note)}">${esc(g.note)}</p>` : '';
       return badge + note;
     }
+    // Davet takibi: "gonderildi" (dugmeye basilinca ya da elle) ve "acildi" (davetli sayfayi acinca).
+    function trackHtml(g) {
+      if (g.rsvp && !g.sentAt && !g.openedAt) return '';
+      const day = (d) => new Date(d).toLocaleDateString(DATE_LOCALE, { day: '2-digit', month: '2-digit' });
+      const full = (d) => new Date(d).toLocaleString(DATE_LOCALE, { dateStyle: 'medium', timeStyle: 'short' });
+      const via = { whatsapp: 'WhatsApp', email: tx('common.email'), manual: tx('list.viaManual') }[g.sentVia] || '';
+      const out = [];
+      if (g.sentAt) {
+        const title = tx('list.trackSentTitle', { date: full(g.sentAt), via }) + (g.can ? ' ' + tx('list.trackUnmark') : '');
+        const label = `${esc(tx('list.trackSent'))} · ${day(g.sentAt)}`;
+        out.push(g.can
+          ? `<button type="button" class="gl-track-chip is-sent" data-act="sent" title="${esc(title)}">${label}</button>`
+          : `<span class="gl-track-chip is-sent" title="${esc(title)}">${label}</span>`);
+      } else if (g.openedAt) {
+        out.push(`<span class="gl-track-chip is-sent" title="${esc(tx('list.trackSentImplied'))}">${esc(tx('list.trackSent'))}</span>`);
+      } else {
+        out.push(g.can
+          ? `<button type="button" class="gl-track-chip is-off" data-act="sent" title="${esc(tx('list.trackMark'))}">${esc(tx('list.trackNotSent'))}</button>`
+          : `<span class="gl-track-chip is-off">${esc(tx('list.trackNotSent'))}</span>`);
+      }
+      if (g.openedAt) {
+        const times = g.opens > 1 ? ` · ${g.opens}×` : '';
+        out.push(`<span class="gl-track-chip is-opened" title="${esc(tx('list.trackOpenedTitle', { date: full(g.openedAt), n: Math.max(1, g.opens) }))}">${esc(tx('list.trackOpened'))} · ${day(g.openedAt)}${times}</span>`);
+      } else if (g.sentAt && !g.rsvp) {
+        out.push(`<span class="gl-track-chip is-off">${esc(tx('list.trackNotOpened'))}</span>`);
+      }
+      return `<div class="gl-track">${out.join('')}</div>`;
+    }
     function rowHtml(g) {
       const contact = sendButtons(g);
       const actions = [
@@ -508,7 +553,7 @@
         g.can ? `<button type="button" class="gl-act danger" data-act="del">${esc(tx('common.delete'))}</button>` : ''
       ].join('');
       return `<tr class="gl-row${rsvpState(g) === 'no' ? ' is-declined' : ''}" data-id="${g.id}">
-        <td class="gl-c-name"><p class="gl-name">${esc(g.name)}</p>${contact ? `<div class="gl-send">${contact}</div>` : ''}</td>
+        <td class="gl-c-name"><p class="gl-name">${esc(g.name)}</p>${contact ? `<div class="gl-send">${contact}</div>` : ''}${g.url ? trackHtml(g) : ''}</td>
         <td class="gl-c-city">${g.city ? esc(g.city) : '<span class="gl-muted">—</span>'}</td>
         <td class="gl-c-status">${statusCell(g)}</td>
         <td class="gl-c-rsvp">${rsvpCell(g)}</td>
@@ -531,7 +576,7 @@
       $('glEmpty').hidden = rows.length > 0;
 
       const persons = rows.reduce((n, g) => n + (rsvpState(g) === 'yes' ? g.party : 0), 0);
-      const isFiltered = !!(st.q || st.status || st.rsvp || st.user || st.city);
+      const isFiltered = !!(st.q || st.status || st.rsvp || st.invite || st.user || st.city);
       $('glSummary').innerHTML = `<b>${rows.length}</b> ${esc(tx('list.guestsWord'))}${isFiltered ? ` <span class="gl-muted">${esc(tx('list.totalParen', { n: GUESTS.length }))}</span>` : ''} · <b>${persons}</b> ${esc(tx('list.personsConfirmedWord'))}`;
       $('glReset').hidden = !isFiltered;
 
@@ -558,7 +603,7 @@
       $('glSearch').value = '';
       $('glUser').value = '';
       $('glCity').value = '';
-      setFilter({ q: '', status: '', rsvp: '', user: '', city: '' });
+      setFilter({ q: '', status: '', rsvp: '', invite: '', user: '', city: '' });
     }
 
     /* ---------- Olaylar ---------- */
@@ -618,8 +663,38 @@
       const g = GUESTS.find((x) => x.id === Number(btn.closest('tr').dataset.id));
       if (!g) return;
       const act = btn.dataset.act;
+      if (act === 'send') {
+        // Baglanti normal sekilde acilir (WhatsApp / e-posta); kayit arka planda "gonderildi" olarak isaretlenir.
+        const via = btn.dataset.via;
+        const before = { sentAt: g.sentAt, sentVia: g.sentVia };
+        g.sentAt = new Date().toISOString();
+        g.sentVia = via;
+        setTimeout(refreshAll, 0);
+        fetch(BASE + `/api/guest/${g.id}/sent`, {
+          method: 'POST',
+          keepalive: true,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sent: true, via })
+        }).then((res) => {
+          if (!res.ok) throw new Error(String(res.status));
+          toast(tx('list.trackMarked', { name: g.name }));
+        }).catch(() => {
+          Object.assign(g, before);
+          refreshAll();
+          toast(tx('list.trackSaveFailed'), true);
+        });
+        return;
+      }
       try {
-        if (act === 'copy') {
+        if (act === 'sent') {
+          const on = !g.sentAt;
+          btn.disabled = true;
+          await api(`/api/guest/${g.id}/sent`, 'POST', { sent: on, via: 'manual' });
+          g.sentAt = on ? new Date().toISOString() : null;
+          g.sentVia = on ? 'manual' : '';
+          refreshAll();
+          toast(on ? tx('list.trackMarked', { name: g.name }) : tx('list.trackUnmarked', { name: g.name }));
+        } else if (act === 'copy') {
           toast((await copyText(g.url)) ? tx('list.linkCopied', { name: g.name }) : tx('list.linkCopyFailed'), false);
         } else if (act === 'status') {
           const v = Number(btn.dataset.v);

@@ -132,6 +132,15 @@
 
   <script>
   const TOKEN = <%- JSON.stringify(token) %>;
+  // Acilis bildirimi (sekme basina bir kez): listede "acildi" olarak gorunur.
+  (() => {
+    try {
+      const key = 'inviteOpened.' + TOKEN;
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, '1');
+    } catch (_) {}
+    fetch(`<%= typeof basePath !== 'undefined' ? basePath : '' %>/api/rsvp/${encodeURIComponent(TOKEN)}/opened`, { method: 'POST', keepalive: true }).catch(() => {});
+  })();
   const INITIAL_GUEST = <%- JSON.stringify({ id: guest.id, name: guest.name, status: guest.status, party_size: guest.party_size, answered: !!guest.rsvp_at }) %>;
   const WEDDING_CALENDAR = <%- JSON.stringify(calendar) %>;
   const SHOW_CALENDAR_INIT = <%= showCalendar ? 'true' : 'false' %>;
