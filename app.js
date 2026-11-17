@@ -127,7 +127,15 @@ function escapeIcsText(value) {
 
 function buildWeddingIcs(locale = "tr") {
   const calendar = getWeddingCalendar(locale);
-  const { title, description, date, start, end, timezone, location, mapsUrl, travelMinutes, reminderDays } = calendar;
+  const { title, description, date, start, end, timezone, location, mapsUrl, travelMinutes, reminders } = calendar;
+  // Her hatirlatma icin bir VALARM (or. 1 gun once, 1 saat once).
+  const alarms = reminders.flatMap((before) => [
+    "BEGIN:VALARM",
+    "ACTION:DISPLAY",
+    `DESCRIPTION:${escapeIcsText(title)}`,
+    `TRIGGER:-${before}`,
+    "END:VALARM"
+  ]);
   const uid = `wedding-${date}@davetiye`;
   const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
   const prodLang = String(locale || "tr").toUpperCase();
@@ -145,13 +153,9 @@ function buildWeddingIcs(locale = "tr") {
     `SUMMARY:${escapeIcsText(title)}`,
     `DESCRIPTION:${escapeIcsText(`${description}\n${location}\n${mapsUrl}`)}`,
     `LOCATION:${escapeIcsText(location)}`,
-    // Yol suresi (Apple Takvim) ve dugunden 1 gun once hatirlatma.
+    // Yol suresi (Apple Takvim) ve hatirlatmalar.
     `X-APPLE-TRAVEL-DURATION;VALUE=DURATION:PT${travelMinutes}M`,
-    "BEGIN:VALARM",
-    "ACTION:DISPLAY",
-    `DESCRIPTION:${escapeIcsText(title)}`,
-    `TRIGGER:-P${reminderDays}D`,
-    "END:VALARM",
+    ...alarms,
     "END:VEVENT",
     "END:VCALENDAR",
     ""

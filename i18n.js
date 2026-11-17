@@ -83,12 +83,12 @@ function guestLocaleMiddleware(req, res, next) {
   next();
 }
 
-// Dugun salonu: adres, yol tarifi linki, takvim kaydindaki yol suresi ve hatirlatma.
+// Dugun salonu: adres, yol tarifi linki, takvim kaydindaki yol suresi ve hatirlatmalar (ICS sure bicimi).
 const WEDDING_VENUE = {
   venueName: "Visaal Event Location",
   address: "Obergath 154, 47805 Krefeld-Fischeln",
   travelMinutes: 30,
-  reminderDays: 1
+  reminders: ["P1D", "PT1H"]
 };
 // Takvim kaydi ve yol tarifi icin: salon adi + adres.
 WEDDING_VENUE.location = `${WEDDING_VENUE.venueName}, ${WEDDING_VENUE.address}`;
