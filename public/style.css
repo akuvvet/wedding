@@ -356,6 +356,14 @@ tr.guest-row-editing {
     margin: 1.1rem auto 0;
 }
 
+.rsvp-venue-name {
+    margin: 0;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 1.25rem;
+    letter-spacing: 0.04em;
+    color: #d4af37;
+}
+
 .rsvp-venue-address {
     margin: 0;
     font-size: 0.92rem;
@@ -912,6 +920,265 @@ tr.guest-row-editing {
 .rsvp-calendar-btn-secondary:hover {
     background: rgba(201, 169, 98, 0.1);
     filter: none;
+}
+
+/* ---- Davet sayfasi renkleri: anil ve yunus ile ayni acik palet (duzen degismedi) ---- */
+
+.rsvp-page {
+    color: #3a342c;
+    background: linear-gradient(165deg, #faf8f5 0%, #f4efe6 42%, #ebe3d6 100%);
+}
+
+.rsvp-card {
+    border-color: #e8dfd2;
+    background: #fffcfa;
+    box-shadow:
+        0 24px 50px rgba(44, 38, 32, 0.08),
+        0 8px 20px rgba(44, 38, 32, 0.04);
+}
+
+.rsvp-header {
+    background: linear-gradient(165deg, #2a2622 0%, #3a342e 38%, #4f463c 72%, #5c5246 100%);
+    border-bottom-color: rgba(201, 168, 108, 0.55);
+}
+
+.rsvp-ornament-line {
+    background: linear-gradient(90deg, transparent, rgba(201, 168, 108, 0.85), transparent);
+}
+
+.rsvp-ornament-diamond {
+    background: #c9a86c;
+    box-shadow: 0 0 12px rgba(201, 168, 108, 0.5);
+}
+
+.rsvp-badge,
+.rsvp-parents-title {
+    color: rgba(212, 196, 168, 0.92);
+}
+
+.rsvp-couple,
+.rsvp-parents-side,
+.rsvp-venue-address {
+    color: #fff;
+}
+
+.rsvp-amp,
+.rsvp-date,
+.rsvp-parents-family {
+    color: rgba(232, 220, 198, 0.95);
+}
+
+.rsvp-parents-sep {
+    background: linear-gradient(180deg, transparent, rgba(201, 168, 108, 0.7), transparent);
+}
+
+.rsvp-venue-name {
+    margin: 0;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 1.2rem;
+    letter-spacing: 0.04em;
+    color: rgba(232, 220, 198, 0.98);
+}
+
+.rsvp-venue-route {
+    border-color: rgba(232, 220, 198, 0.6);
+    color: rgba(232, 220, 198, 0.98);
+}
+
+.rsvp-venue-route:hover {
+    background: rgba(232, 220, 198, 0.14);
+}
+
+.rsvp-intro {
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.rsvp-lang-btn {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.rsvp-lang-btn:hover {
+    color: #fff;
+}
+
+.rsvp-lang-btn.is-active {
+    color: #faf6f0;
+    background: rgba(201, 168, 108, 0.22);
+}
+
+.rsvp-lang-sep {
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.rsvp-alert-success {
+    background: linear-gradient(135deg, #dcfce7, #f0fdf4);
+    border-color: #16a34a;
+    box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.12), 0 10px 24px rgba(22, 163, 74, 0.16);
+    color: #14532d;
+}
+
+.rsvp-alert-success::before {
+    background: #16a34a;
+    color: #fff;
+}
+
+.rsvp-alert-error {
+    background: #faf5f4;
+    border-color: #dfc5c0;
+    color: #6b4540;
+}
+
+.rsvp-field-label {
+    color: #8a7a66;
+}
+
+.rsvp-field-hint {
+    color: #8a8278;
+}
+
+.rsvp-guest-box {
+    background: #f7f3ed;
+    border-color: #e5d9c8;
+}
+
+.rsvp-guest-name,
+.rsvp-question {
+    color: #3a342c;
+}
+
+.rsvp-input {
+    border-color: #e0d5c8;
+    color: #3a342c;
+    background: #fffcfa;
+}
+
+.rsvp-input::placeholder {
+    color: #a39a8e;
+}
+
+.rsvp-input:focus {
+    border-color: #b8956a;
+    box-shadow: 0 0 0 3px rgba(184, 149, 106, 0.18);
+}
+
+.rsvp-input option {
+    background: #fffcfa;
+    color: #3a342c;
+}
+
+.rsvp-match-btn {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+    color: #3a342c;
+}
+
+.rsvp-match-btn:hover {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+}
+
+.rsvp-submit {
+    border-color: transparent;
+    background: linear-gradient(135deg, #4a4036 0%, #6b5d4f 55%, #8b7355 100%);
+    color: #faf6f0;
+    box-shadow: 0 4px 14px rgba(58, 52, 44, 0.22);
+}
+
+.rsvp-submit:hover {
+    box-shadow: 0 6px 18px rgba(58, 52, 44, 0.28);
+}
+
+.rsvp-submit:disabled {
+    box-shadow: none;
+}
+
+.rsvp-footer-note {
+    color: #7a7064;
+}
+
+.rsvp-choice-option {
+    border-color: #d9cab8;
+    background: #faf7f3;
+    color: #4a443c;
+}
+
+.rsvp-choice-option:hover {
+    border-color: #b8956a;
+}
+
+.rsvp-choice-mark {
+    border-color: #b8a48c;
+    background: #fffcfa;
+    color: #8b7355;
+}
+
+.rsvp-choice-option:has(input:checked),
+.rsvp-choice-option-no:has(input:checked) {
+    border-color: #6b5d4f;
+    background: #f1e7da;
+    box-shadow: 0 0 0 1px #6b5d4f;
+    color: #2f2a24;
+}
+
+.rsvp-choice-option:has(input:checked) .rsvp-choice-mark,
+.rsvp-choice-option-no:has(input:checked) .rsvp-choice-mark {
+    background: #5c5246;
+    border-color: #5c5246;
+    color: #faf6f0;
+}
+
+.rsvp-choice-option:has(input:focus-visible) {
+    outline-color: #b8956a;
+}
+
+.rsvp-calendar-suggest {
+    border-color: #b08d4f;
+    background: linear-gradient(135deg, #fff6dc 0%, #f4e4c0 100%);
+    box-shadow: 0 0 0 4px rgba(176, 141, 79, 0.14), 0 10px 24px rgba(92, 82, 70, 0.14);
+}
+
+.rsvp-calendar-backdrop {
+    background: rgba(44, 38, 32, 0.62);
+}
+
+.rsvp-calendar-suggest.is-modal {
+    background: linear-gradient(135deg, #fff6dc 0%, #f4e4c0 100%);
+    box-shadow: 0 0 0 4px rgba(176, 141, 79, 0.2), 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.rsvp-calendar-close,
+.rsvp-calendar-later,
+.rsvp-calendar-meta {
+    color: #5c5246;
+}
+
+.rsvp-calendar-icon {
+    background: #5c5246;
+    color: #fff6dc;
+}
+
+.rsvp-calendar-title {
+    color: #2a2622;
+}
+
+.rsvp-calendar-btn {
+    background: #5c5246;
+    color: #faf6f0;
+}
+
+.rsvp-calendar-btn:hover {
+    background: #4a4036;
+    filter: none;
+}
+
+.rsvp-calendar-btn-secondary {
+    background: #fffcfa;
+    color: #5c5246;
+    border-color: #d4c4ae;
+}
+
+.rsvp-calendar-btn-secondary:hover {
+    background: #f7f1e8;
 }
 
 .guest-cell-kullanici {

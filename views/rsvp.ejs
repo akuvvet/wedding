@@ -36,7 +36,8 @@
           </div>
         </div>
         <div class="rsvp-venue">
-          <p class="rsvp-venue-address"><%= calendar.location %></p>
+          <p class="rsvp-venue-name"><%= calendar.venueName %></p>
+          <p class="rsvp-venue-address"><%= calendar.address %></p>
           <a class="rsvp-venue-route" href="<%= calendar.mapsUrl %>" target="_blank" rel="noopener noreferrer" title="<%= t('rsvp.routeTitle') %>">
             <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
             <span><%= t('rsvp.route') %></span>
@@ -131,7 +132,7 @@
 
   <script>
   const TOKEN = <%- JSON.stringify(token) %>;
-  const INITIAL_GUEST = <%- JSON.stringify({ id: guest.id, name: guest.name, status: guest.status, party_size: guest.party_size }) %>;
+  const INITIAL_GUEST = <%- JSON.stringify({ id: guest.id, name: guest.name, status: guest.status, party_size: guest.party_size, answered: !!guest.rsvp_at }) %>;
   const WEDDING_CALENDAR = <%- JSON.stringify(calendar) %>;
   const SHOW_CALENDAR_INIT = <%= showCalendar ? 'true' : 'false' %>;
   const I18N = <%- JSON.stringify(i18n.rsvp) %>;
@@ -245,7 +246,8 @@
 
   const initialSize = Number(INITIAL_GUEST.party_size || 0);
   buildPartySizeOptions(initialSize);
-  if (Number(INITIAL_GUEST.status) === 3) {
+  // Paneldeki durum 3 tek basina yanit sayilmaz: yalnizca davetli kendisi yanitladiysa "katilamayacagim" secili gelir.
+  if (INITIAL_GUEST.answered && Number(INITIAL_GUEST.status) === 3) {
     setChoice('no');
   } else if (SHOW_CALENDAR_INIT || initialSize > 0) {
     // Onceden kayitli katilim: form dolu gelir, takvim yine de ancak onaydan sonra gorunur.
