@@ -309,6 +309,11 @@ tr.guest-row-editing {
     color: #c9a962;
 }
 
+.rsvp-date.rsvp-time {
+    margin-top: 0.2rem;
+    font-size: 0.95rem;
+}
+
 .rsvp-parents {
     margin: 1.1rem auto 0;
     max-width: 24rem;

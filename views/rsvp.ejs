@@ -27,6 +27,7 @@
         <p class="rsvp-badge"><%= t('rsvp.headerBadge') %></p>
         <h1 class="rsvp-couple">Zeynep <span class="rsvp-amp">&amp;</span> Enis</h1>
         <p class="rsvp-date">16.01.2027</p>
+        <p class="rsvp-date rsvp-time">17:00 – 00:00</p>
         <div class="rsvp-parents">
           <p class="rsvp-parents-title"><%= t('rsvp.parents') %></p>
           <div class="rsvp-parents-row">
@@ -65,7 +66,7 @@
             </span>
             <div>
               <p class="rsvp-calendar-title"><%= t('rsvp.calendarTitle') %></p>
-              <p class="rsvp-calendar-meta"><%= calendar.title %> · 16.01.2027 · 16:00 – 23:00</p>
+              <p class="rsvp-calendar-meta"><%= calendar.title %> · 16.01.2027 · 17:00 – 00:00</p>
               <p class="rsvp-calendar-meta"><%= calendar.location %></p>
             </div>
           </div>
@@ -162,7 +163,7 @@
     const params = new URLSearchParams({
       action: 'TEMPLATE',
       text: WEDDING_CALENDAR.title,
-      dates: `${WEDDING_CALENDAR.date}T${WEDDING_CALENDAR.start}/${WEDDING_CALENDAR.date}T${WEDDING_CALENDAR.end}`,
+      dates: `${WEDDING_CALENDAR.date}T${WEDDING_CALENDAR.start}/${WEDDING_CALENDAR.endDate || WEDDING_CALENDAR.date}T${WEDDING_CALENDAR.end}`,
       ctz: WEDDING_CALENDAR.timezone,
       location: WEDDING_CALENDAR.location,
       details: `${WEDDING_CALENDAR.description}\n${WEDDING_CALENDAR.location}\n${WEDDING_CALENDAR.mapsUrl}`

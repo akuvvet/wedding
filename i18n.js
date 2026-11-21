@@ -102,8 +102,10 @@ function getWeddingCalendar(locale) {
     description: t("calendar.description"),
     icsFilename: t("calendar.icsFilename"),
     date: "20270116",
-    start: "160000",
-    end: "230000",
+    start: "170000",
+    // Gece yarisinda biter: bitis ertesi gunun 00:00'i.
+    endDate: "20270117",
+    end: "000000",
     timezone: "Europe/Berlin"
   };
 }
