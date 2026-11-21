@@ -387,7 +387,7 @@ async function resolveCurrentUserId(req) {
 }
 
 app.get("/login", (req, res) => {
-  if (req.session.user) return res.redirect(isViewer(req) ? viewerHome() : "/");
+  if (req.session.user) return res.redirect(isViewer(req) ? viewerHome() : "/list");
   res.render("login", { error: "" });
 });
 
@@ -425,7 +425,7 @@ app.post("/login", async (req, res) => {
       username: user ? user.username : username,
       role
     };
-    res.redirect(role === "viewer" ? viewerHome() : "/");
+    res.redirect(role === "viewer" ? viewerHome() : "/list");
   } catch (err) {
     res.status(500).render("login", { error: req.t("panel.api.serverError", { msg: err.message }) });
   }
