@@ -199,7 +199,7 @@
       "csvLink": "Invitation link",
       "csvFile": "guest-list",
       "exported": "{{n}} entries downloaded",
-      "inviteMessage": "Hello {{name}},\n\nWe are getting married and would be delighted to count you among our wedding guests.\n\nPlease let us know for certain via the link below whether you will be able to attend:\n\n{{url}}",
+      "inviteMessage": "Hello {{name}},\n\nWe are getting married and would be delighted to count you among our wedding guests.\n\nPlease let us know for certain via the link below whether you will be able to attend.\n\nKind regards\n{{sender}}\n\n{{url}}",
       "inviteSubject": "Wedding invitation",
       "sendWhatsappTitle": "Send the invitation link by WhatsApp",
       "sendEmailTitle": "Send the invitation link by email",

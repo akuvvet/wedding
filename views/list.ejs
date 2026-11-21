@@ -451,7 +451,9 @@
     function sendButtons(g) {
       const off = (label) => `<span class="gl-send-btn is-off" title="${esc(tx('list.sendOwnerOnly'))}">${esc(label)}</span>`;
       // Link, mesajla ayni dilde acilsin diye panel dilini tasir.
-      const text = tx('list.inviteMessage', { name: g.name, url: `${g.url}?lang=${LOCALE}` });
+      // Imza: gonderen panel kullanicisinin adi, bas harfi buyuk.
+      const sender = CFG.meName ? CFG.meName.charAt(0).toUpperCase() + CFG.meName.slice(1) : '';
+      const text = tx('list.inviteMessage', { name: g.name, sender, url: `${g.url}?lang=${LOCALE}` });
       // E-posta programlari (or. Outlook) satir sonu olarak CRLF bekler; yalniz LF ile bos satirlar kaybolur.
       const mailText = text.replace(/\r?\n/g, '\r\n');
       const out = [];
