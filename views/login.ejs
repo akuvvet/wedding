@@ -17,10 +17,20 @@
       <div class="mt-4 rounded bg-red-100 text-red-700 px-3 py-2 text-sm"><%= error %></div>
     <% } %>
     <form method="post" action="<%= basePath %>/login" class="mt-5 space-y-4">
-      <div><label class="text-sm" for="loginUser"><%= t('panel.login.username') %></label><input id="loginUser" name="username" required autocomplete="username" class="mt-1 w-full rounded border px-3 py-2"></div>
+      <div><label class="text-sm" for="loginUser"><%= t('panel.login.username') %></label><input id="loginUser" name="username" required autocomplete="username" value="<%= typeof rememberedUser !== 'undefined' ? rememberedUser : '' %>" class="mt-1 w-full rounded border px-3 py-2"></div>
       <div><label class="text-sm" for="loginPass"><%= t('panel.login.password') %></label><input id="loginPass" type="password" name="password" required autocomplete="current-password" class="mt-1 w-full rounded border px-3 py-2"></div>
+      <label class="flex items-center gap-2 text-sm text-slate-700 select-none" for="loginRemember">
+        <input id="loginRemember" type="checkbox" name="remember" value="1" class="h-4 w-4 rounded border-slate-300 accent-indigo-600" <%= typeof rememberedUser !== 'undefined' && rememberedUser ? 'checked' : '' %>>
+        <span><%= t('panel.login.remember') %></span>
+      </label>
       <button class="w-full rounded bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5"><%= t('panel.login.submit') %></button>
     </form>
+    <script>
+      (() => {
+        const u = document.getElementById('loginUser');
+        if (u && u.value) document.getElementById('loginPass').focus();
+      })();
+    </script>
   </div>
 </body>
 </html>

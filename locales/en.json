@@ -97,7 +97,8 @@
       "heading": "Secure sign-in",
       "username": "Username",
       "password": "Password",
-      "submit": "Sign in"
+      "submit": "Sign in",
+    "remember": "Remember me"
     },
     "form": {
       "title": "Entry form",

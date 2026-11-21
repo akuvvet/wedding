@@ -97,7 +97,8 @@
       "heading": "Güvenli Giriş",
       "username": "Kullanıcı Adı",
       "password": "Şifre",
-      "submit": "Giriş Yap"
+      "submit": "Giriş Yap",
+    "remember": "Beni hatırla"
     },
     "form": {
       "title": "Giriş Formu",

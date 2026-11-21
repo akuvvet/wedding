@@ -97,7 +97,8 @@
       "heading": "Sichere Anmeldung",
       "username": "Benutzername",
       "password": "Passwort",
-      "submit": "Anmelden"
+      "submit": "Anmelden",
+    "remember": "Angemeldet bleiben"
     },
     "form": {
       "title": "Eingabeformular",

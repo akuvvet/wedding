@@ -39,6 +39,23 @@ app.locals.basePath = "";
 // Panel ve davetiye sayfalari ayni dil secimini kullanir (?lang=tr|de|en, cerezde saklanir).
 app.use(guestLocaleMiddleware);
 
+// "Beni hatirla": kullanici adi bu cerezde saklanir (sifre asla saklanmaz). Her uygulamanin kendi cerezi var.
+const REMEMBER_COOKIE = "remember_user";
+const REMEMBER_DAYS = 30;
+function readCookie(req, name) {
+  for (const part of String(req.headers.cookie || "").split(";")) {
+    const i = part.indexOf("=");
+    if (i > 0 && part.slice(0, i).trim() === name) {
+      try { return decodeURIComponent(part.slice(i + 1).trim()); } catch (_) { return ""; }
+    }
+  }
+  return "";
+}
+app.use((req, res, next) => {
+  res.locals.rememberedUser = readCookie(req, REMEMBER_COOKIE).slice(0, 100);
+  next();
+});
+
 function isViewer(req) {
   return req.session?.user?.role === "viewer";
 }
@@ -435,6 +452,16 @@ app.post("/login", async (req, res) => {
       username: user ? user.username : username,
       role
     };
+    // "Beni hatirla": oturum 30 gun surer, kullanici adi bir yil hatirlanir; isaretsizse tarayici kapaninca biter.
+    const remember = req.body.remember === "1";
+    const cookieOpts = { httpOnly: true, sameSite: "lax", secure: !!req.session.cookie.secure, path: req.app.locals.basePath || "/" };
+    if (remember) {
+      req.session.cookie.maxAge = REMEMBER_DAYS * 24 * 60 * 60 * 1000;
+      res.cookie(REMEMBER_COOKIE, String(username), { ...cookieOpts, maxAge: 365 * 24 * 60 * 60 * 1000 });
+    } else {
+      req.session.cookie.maxAge = null;
+      res.clearCookie(REMEMBER_COOKIE, cookieOpts);
+    }
     res.redirect(role === "viewer" ? viewerHome() : "/list");
   } catch (err) {
     res.status(500).render("login", { error: req.t("panel.api.serverError", { msg: err.message }) });
