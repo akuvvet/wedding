@@ -314,6 +314,14 @@ tr.guest-row-editing {
     font-size: 0.95rem;
 }
 
+.rsvp-date-label {
+    margin-right: 0.35em;
+    font-size: 0.78em;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.8;
+}
+
 .rsvp-parents {
     margin: 1.1rem auto 0;
     max-width: 24rem;
@@ -1931,6 +1939,17 @@ button.gl-track-chip.is-sent.via-both:hover {
 .gl-chip.iv-sent.is-active {
     background: #1e40af;
     border-color: #1e40af;
+}
+
+.gl-track-chip.is-cal {
+    background: #ccfbf1;
+    border-color: #5eead4;
+    color: #115e59;
+}
+
+.gl-chip.iv-nocal.is-active {
+    background: #0f766e;
+    border-color: #0f766e;
 }
 
 .gl-chip.iv-opened.is-active {

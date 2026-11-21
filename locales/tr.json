@@ -5,6 +5,8 @@
   },
   "rsvp": {
     "parents": "Ebeveynler",
+    "dateLabel": "Tarih",
+    "timeLabel": "Saat",
     "route": "Yol tarifi",
     "routeTitle": "Google Haritalar'da yol tarifi al",
     "headerBadge": "Özel DÜGÜN DAVETIYESI",
@@ -221,7 +223,11 @@
       "trackMarked": "{{name}}: gönderildi olarak işaretlendi",
       "trackUnmarked": "{{name}}: gönderildi işareti kaldırıldı",
       "trackSaveFailed": "Gönderildi işareti kaydedilemedi",
-      "viaManual": "elle işaretlendi"
+      "viaManual": "elle işaretlendi",
+      "inviteNoCalendar": "Takvime eklemedi",
+      "inviteNoCalendarTitle": "Katılacağını bildirdi ama davet sayfasındaki takvim düğmesine basmadı",
+      "trackCalendar": "Takvim",
+      "trackCalendarTitle": "Takvim düğmesine bastı: {{date}} ({{via}}) · {{n}} kez. Takvimine kaydettiği kesin değil."
     },
     "flow": {
       "title": "Gün Akışı",

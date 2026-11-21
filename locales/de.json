@@ -5,6 +5,8 @@
   },
   "rsvp": {
     "parents": "Eltern",
+    "dateLabel": "Datum",
+    "timeLabel": "Uhrzeit",
     "route": "Route planen",
     "routeTitle": "Route in Google Maps berechnen",
     "headerBadge": "PERSÖNLICHE HOCHZEITSEINLADUNG",
@@ -221,7 +223,11 @@
       "trackMarked": "{{name}}: als gesendet markiert",
       "trackUnmarked": "{{name}}: Markierung „gesendet“ entfernt",
       "trackSaveFailed": "Markierung „gesendet“ konnte nicht gespeichert werden",
-      "viaManual": "manuell markiert"
+      "viaManual": "manuell markiert",
+      "inviteNoCalendar": "Nicht im Kalender",
+      "inviteNoCalendarTitle": "Hat zugesagt, aber den Kalender-Button auf der Einladungsseite nicht benutzt",
+      "trackCalendar": "Kalender",
+      "trackCalendarTitle": "Kalender-Button benutzt: {{date}} ({{via}}) · {{n}}-mal. Ob der Termin gespeichert wurde, ist nicht sicher."
     },
     "flow": {
       "title": "Tagesablauf",

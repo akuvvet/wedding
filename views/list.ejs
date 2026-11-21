@@ -40,6 +40,9 @@
         openedAt: g.invite_opened_at || null,
         opens: Number(g.invite_open_count || 0),
         copiedAt: g.invite_copied_at || null,
+        calAt: g.calendar_at || null,
+        calVia: g.calendar_via || "",
+        calCount: Number(g.calendar_count || 0),
         url: g.invite_token ? `${base}/davet/${g.invite_token}` : "",
         can
       };
@@ -156,6 +159,7 @@
           <button type="button" class="gl-chip" data-filter="invite" data-value="none"><%= T('list.inviteNone') %> <b data-count="invite-none"></b></button>
           <button type="button" class="gl-chip iv-sent" data-filter="invite" data-value="sent"><%= T('list.inviteSentOnly') %> <b data-count="invite-sent"></b></button>
           <button type="button" class="gl-chip iv-opened" data-filter="invite" data-value="opened"><%= T('list.inviteOpenedOnly') %> <b data-count="invite-opened"></b></button>
+          <button type="button" class="gl-chip iv-nocal" data-filter="invite" data-value="nocal" title="<%= T('list.inviteNoCalendarTitle') %>"><%= T('list.inviteNoCalendar') %> <b data-count="invite-nocal"></b></button>
         </div>
       </div>
 
@@ -338,7 +342,7 @@
     function renderKpis() {
       const c = { 1: 0, 2: 0, 3: 0 };
       const r = { yes: 0, no: 0, wait: 0 };
-      const iv = { none: 0, sent: 0, opened: 0, done: 0 };
+      const iv = { none: 0, sent: 0, opened: 0, done: 0, nocal: 0 };
       let persons = 0;
       let waitingMust = 0;
       for (const g of GUESTS) {
@@ -346,6 +350,7 @@
         const rs = rsvpState(g);
         r[rs] += 1;
         iv[inviteState(g)] += 1;
+        if (rs === 'yes' && !g.calAt) iv.nocal += 1;
         if (rs === 'yes') persons += g.party;
         if (rs === 'wait' && g.status === 1) waitingMust += 1;
       }
@@ -371,7 +376,7 @@
       $('kpiOccupancyBar').style.width = occ + '%';
       $('glHeadSub').textContent = `${total} ${tx('list.guestsWord')} · ${persons} ${tx('list.personsConfirmedWord')} · ${tx('list.capacityWord')} ${CFG.capacity}`;
 
-      const counts = { 'status-1': c[1], 'status-2': c[2], 'status-3': c[3], 'rsvp-yes': r.yes, 'rsvp-no': r.no, 'rsvp-wait': r.wait, 'invite-none': iv.none, 'invite-sent': iv.sent, 'invite-opened': iv.opened };
+      const counts = { 'status-1': c[1], 'status-2': c[2], 'status-3': c[3], 'rsvp-yes': r.yes, 'rsvp-no': r.no, 'rsvp-wait': r.wait, 'invite-none': iv.none, 'invite-sent': iv.sent, 'invite-opened': iv.opened, 'invite-nocal': iv.nocal };
       document.querySelectorAll('[data-count]').forEach((el) => { el.textContent = counts[el.dataset.count] ?? ''; });
     }
 
@@ -477,7 +482,8 @@
       return GUESTS.filter((g) => {
         if (status && g.status !== status) return false;
         if (st.rsvp && rsvpState(g) !== st.rsvp) return false;
-        if (st.invite && inviteState(g) !== st.invite) return false;
+        // "nocal": katilacagini bildirdi ama takvim dugmesine basmadi
+        if (st.invite && (st.invite === 'nocal' ? !(rsvpState(g) === 'yes' && !g.calAt) : inviteState(g) !== st.invite)) return false;
         if (st.user && (st.user === '__none__' ? g.uid != null : String(g.uid) !== st.user)) return false;
         if (st.city && (st.city === '__none__' ? !!g.city : g.city !== st.city)) return false;
         if (tokens.length) { const h = hay(g); if (!tokens.every((t) => h.includes(t))) return false; }
@@ -522,9 +528,14 @@
     }
     // Davet takibi: "gonderildi" (dugmeye basilinca ya da elle) ve "acildi" (davetli sayfayi acinca).
     function trackHtml(g) {
-      if (g.rsvp && !g.sentAt && !g.openedAt) return '';
       const day = (d) => new Date(d).toLocaleDateString(DATE_LOCALE, { day: '2-digit', month: '2-digit' });
       const full = (d) => new Date(d).toLocaleString(DATE_LOCALE, { dateStyle: 'medium', timeStyle: 'short' });
+      // Takvim: davetli sayfadaki takvim dugmesine basti (kaydettigi kesin degil).
+      const calVia = String(g.calVia || '').split(',').filter(Boolean).map((x) => ({ google: 'Google', ics: '.ics' }[x] || x)).join(' + ');
+      const cal = g.calAt
+        ? `<span class="gl-track-chip is-cal" title="${esc(tx('list.trackCalendarTitle', { date: full(g.calAt), via: calVia, n: Math.max(1, g.calCount) }))}">${esc(tx('list.trackCalendar'))} · ${day(g.calAt)}${g.calCount > 1 ? ` · ${g.calCount}×` : ''}</span>`
+        : '';
+      if (g.rsvp && !g.sentAt && !g.openedAt) return cal ? `<div class="gl-track">${cal}</div>` : '';
       const vias = String(g.sentVia || '').split(',').filter(Boolean);
       const via = vias.map((x) => ({ whatsapp: 'WhatsApp', email: tx('common.email'), manual: tx('list.viaManual') }[x] || '')).filter(Boolean).join(' + ');
       // Renk gonderim yoluna gore: WhatsApp yesil, e-posta mor, ikisi birden yari yariya.
@@ -549,6 +560,7 @@
       } else if (g.sentAt && !g.rsvp) {
         out.push(`<span class="gl-track-chip is-off">${esc(tx('list.trackNotOpened'))}</span>`);
       }
+      if (cal) out.push(cal);
       return `<div class="gl-track">${out.join('')}</div>`;
     }
     function rowHtml(g) {

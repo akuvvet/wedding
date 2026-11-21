@@ -5,6 +5,8 @@
   },
   "rsvp": {
     "parents": "Parents",
+    "dateLabel": "Date",
+    "timeLabel": "Time",
     "route": "Directions",
     "routeTitle": "Get directions in Google Maps",
     "headerBadge": "PERSONAL WEDDING INVITATION",
@@ -221,7 +223,11 @@
       "trackMarked": "{{name}}: marked as sent",
       "trackUnmarked": "{{name}}: sent mark removed",
       "trackSaveFailed": "Could not save the sent mark",
-      "viaManual": "marked manually"
+      "viaManual": "marked manually",
+      "inviteNoCalendar": "Not in calendar",
+      "inviteNoCalendarTitle": "Confirmed, but did not use the calendar button on the invitation page",
+      "trackCalendar": "Calendar",
+      "trackCalendarTitle": "Calendar button used: {{date}} ({{via}}) · {{n}} times. Saving the event is not confirmed."
     },
     "flow": {
       "title": "Schedule",

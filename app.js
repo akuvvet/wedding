@@ -252,6 +252,16 @@ async function ensureGuestRsvpColumns() {
   if (!names.has("invite_copied_at")) {
     await pool.query("ALTER TABLE guests ADD COLUMN invite_copied_at TIMESTAMP NULL DEFAULT NULL");
   }
+  // Takvim dugmesi (Google / .ics): ilk tiklama, hangi dugmeler, kac kez.
+  if (!names.has("calendar_at")) {
+    await pool.query("ALTER TABLE guests ADD COLUMN calendar_at TIMESTAMP NULL DEFAULT NULL");
+  }
+  if (!names.has("calendar_via")) {
+    await pool.query("ALTER TABLE guests ADD COLUMN calendar_via VARCHAR(16) DEFAULT NULL");
+  }
+  if (!names.has("calendar_count")) {
+    await pool.query("ALTER TABLE guests ADD COLUMN calendar_count INT UNSIGNED NOT NULL DEFAULT 0");
+  }
   const [indexes] = await pool.query("SHOW INDEX FROM guests WHERE Key_name = 'idx_guests_invite_token'");
   if (!indexes.length) {
     await pool.query("CREATE UNIQUE INDEX idx_guests_invite_token ON guests (invite_token)");
@@ -584,11 +594,11 @@ app.get("/list", requireLogin, async (req, res) => {
     const admin = isAdmin(req);
     const baseUrl = getPublicBaseUrl(req);
     const guestSql = viewer
-      ? `SELECT g.id, g.name, g.phone, g.email, g.city, g.status, g.user_id, g.invite_token, g.party_size, g.rsvp_note, g.rsvp_at, g.invite_sent_at, g.invite_sent_via, g.invite_opened_at, g.invite_open_count, g.invite_copied_at, u.username AS kullanici
+      ? `SELECT g.id, g.name, g.phone, g.email, g.city, g.status, g.user_id, g.invite_token, g.party_size, g.rsvp_note, g.rsvp_at, g.invite_sent_at, g.invite_sent_via, g.invite_opened_at, g.invite_open_count, g.invite_copied_at, g.calendar_at, g.calendar_via, g.calendar_count, u.username AS kullanici
          FROM guests g
          LEFT JOIN users u ON u.id = g.user_id
          ORDER BY g.name ASC, g.id ASC`
-      : `SELECT g.id, g.name, g.phone, g.email, g.city, g.status, g.user_id, g.invite_token, g.party_size, g.rsvp_note, g.rsvp_at, g.invite_sent_at, g.invite_sent_via, g.invite_opened_at, g.invite_open_count, g.invite_copied_at, u.username AS kullanici
+      : `SELECT g.id, g.name, g.phone, g.email, g.city, g.status, g.user_id, g.invite_token, g.party_size, g.rsvp_note, g.rsvp_at, g.invite_sent_at, g.invite_sent_via, g.invite_opened_at, g.invite_open_count, g.invite_copied_at, g.calendar_at, g.calendar_via, g.calendar_count, u.username AS kullanici
          FROM guests g
          LEFT JOIN users u ON u.id = g.user_id
          ORDER BY g.name ASC, g.id ASC`;
@@ -738,6 +748,32 @@ app.post("/api/rsvp/:token", guestLocaleMiddleware, async (req, res) => {
     });
   } catch (err) {
     return res.status(500).json({ success: false, message: req.t("api.serverError", { msg: err.message }) });
+  }
+});
+
+// Davet sayfasindaki takvim dugmesine (Google / .ics) basildiginda tarayici bildirir.
+// Takvime gercekten kaydedilip kaydedilmedigi bilinemez; yalnizca dugmeye basilmasi kaydedilir.
+// Panelde oturumu acik olan kullanicinin tiklamalari sayilmaz.
+app.post("/api/rsvp/:token/calendar", async (req, res) => {
+  const token = String(req.params.token || "").trim();
+  const via = String((req.body && req.body.via) || "");
+  if (!token || !["google", "ics"].includes(via)) return res.status(422).json({ success: false });
+  if (req.session && req.session.user) return res.json({ success: true, counted: false });
+  try {
+    const [rows] = await pool.query("SELECT id, calendar_via FROM guests WHERE invite_token = ? LIMIT 1", [token]);
+    if (!rows[0]) return res.status(404).json({ success: false });
+    const known = new Set(String(rows[0].calendar_via || "").split(","));
+    known.add(via);
+    const value = ["google", "ics"].filter((v) => known.has(v)).join(",");
+    await pool.query(
+      `UPDATE guests
+       SET calendar_at = COALESCE(calendar_at, CURRENT_TIMESTAMP), calendar_via = ?, calendar_count = calendar_count + 1
+       WHERE id = ?`,
+      [value, rows[0].id]
+    );
+    return res.json({ success: true, counted: true });
+  } catch (err) {
+    return res.status(500).json({ success: false });
   }
 });
 

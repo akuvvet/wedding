@@ -26,8 +26,8 @@
         </div>
         <p class="rsvp-badge"><%= t('rsvp.headerBadge') %></p>
         <h1 class="rsvp-couple">Zeynep <span class="rsvp-amp">&amp;</span> Enis</h1>
-        <p class="rsvp-date">16.01.2027</p>
-        <p class="rsvp-date rsvp-time">17:00 – 00:00</p>
+        <p class="rsvp-date"><span class="rsvp-date-label"><%= t('rsvp.dateLabel') %>:</span>16.01.2027</p>
+        <p class="rsvp-date rsvp-time"><span class="rsvp-date-label"><%= t('rsvp.timeLabel') %>:</span>17:00 – 00:00</p>
         <div class="rsvp-parents">
           <p class="rsvp-parents-title"><%= t('rsvp.parents') %></p>
           <div class="rsvp-parents-row">
@@ -218,6 +218,16 @@
     document.getElementById('calendarClose').addEventListener('click', closeCalendarModal);
     document.getElementById('calendarLater').addEventListener('click', closeCalendarModal);
     calendarSuggest.querySelectorAll('.rsvp-calendar-btn').forEach((btn) => btn.addEventListener('click', () => setTimeout(closeCalendarModal, 300)));
+    // Takvim dugmesine basildigini bildir (listede "Takvim" olarak gorunur); baglanti normal acilir.
+    calendarSuggest.querySelectorAll('.rsvp-calendar-btn').forEach((btn) => btn.addEventListener('click', () => {
+      const via = btn.id === 'googleCalendarBtn' ? 'google' : 'ics';
+      fetch(`<%= typeof basePath !== 'undefined' ? basePath : '' %>/api/rsvp/${encodeURIComponent(TOKEN)}/calendar`, {
+        method: 'POST',
+        keepalive: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ via })
+      }).catch(() => {});
+    }));
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCalendarModal(); });
   }
 
