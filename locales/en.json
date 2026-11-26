@@ -134,6 +134,7 @@
       "kpiOccupancyFoot": "Assumes “Definitely” × 2.5 people",
       "searchPlaceholder": "Search name, phone, city, note...  ( / )",
       "searchAria": "Search the list",
+      "searchClear": "Clear search",
       "statusFilterAria": "Status filter",
       "rsvpFilterAria": "RSVP filter",
       "rsvpLabel": "RSVP",

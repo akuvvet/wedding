@@ -126,6 +126,7 @@
         <div class="gl-search">
           <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m10.5 10.5 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
           <input type="search" id="glSearch" placeholder="<%= T('list.searchPlaceholder') %>" autocomplete="off" spellcheck="false" aria-label="<%= T('list.searchAria') %>">
+          <button type="button" class="gl-search-clear" id="glSearchClear" title="<%= T('list.searchClear') %>" aria-label="<%= T('list.searchClear') %>" hidden>&times;</button>
         </div>
         <label class="gl-select">
           <span><%= T('common.user') %></span>
@@ -602,6 +603,7 @@
       const isFiltered = !!(st.q || st.status || st.rsvp || st.invite || st.user || st.city);
       $('glSummary').innerHTML = `<b>${rows.length}</b> ${esc(tx('list.guestsWord'))}${isFiltered ? ` <span class="gl-muted">${esc(tx('list.totalParen', { n: GUESTS.length }))}</span>` : ''} · <b>${persons}</b> ${esc(tx('list.personsConfirmedWord'))}`;
       $('glReset').hidden = !isFiltered;
+      $('glSearchClear').hidden = !st.q;
 
       $('glPageInfo').textContent = rows.length ? `${start + 1}–${start + pageRows.length} / ${rows.length}` : '0';
       $('glPrev').disabled = st.page <= 1;
@@ -633,6 +635,10 @@
     const search = $('glSearch');
     search.value = st.q;
     search.addEventListener('input', () => setFilter({ q: search.value }));
+    const clearSearch = () => { search.value = ''; setFilter({ q: '' }); search.focus(); };
+    $('glSearchClear').addEventListener('click', clearSearch);
+    // Esc de aramayi temizler.
+    search.addEventListener('keydown', (e) => { if (e.key === 'Escape' && search.value) { e.preventDefault(); clearSearch(); } });
     document.addEventListener('keydown', (e) => {
       if (e.key === '/' && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) { e.preventDefault(); search.focus(); search.select(); }
     });

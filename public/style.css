@@ -1600,6 +1600,46 @@ tr.guest-row-rsvp-declined:hover {
     outline: none;
 }
 
+/* Arama kutusu: sagdaki X dugmesi aramayi temizler (tarayicinin kendi X'i gizli). */
+.gl-search input {
+    padding-right: 2.2rem;
+}
+
+.gl-search input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.gl-search-clear {
+    position: absolute;
+    right: 0.35rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: #e2e8f0;
+    color: #475569;
+    font-size: 1.05rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.gl-search-clear:hover,
+.gl-search-clear:focus-visible {
+    background: #cbd5e1;
+    color: #0f172a;
+}
+
+.gl-search-clear[hidden] {
+    display: none;
+}
+
 .gl-search input:focus {
     border-color: var(--gl-accent);
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
