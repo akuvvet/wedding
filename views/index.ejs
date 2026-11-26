@@ -20,6 +20,7 @@
         <div><label class="text-sm"><%= t('panel.common.phone') %></label><input name="phone" class="mt-1 w-full rounded border px-3 py-2"></div>
         <div><label class="text-sm"><%= t('panel.common.email') %></label><input type="email" name="email" class="mt-1 w-full rounded border px-3 py-2"></div>
         <div><label class="text-sm"><%= t('panel.common.city') %></label><input name="city" class="mt-1 w-full rounded border px-3 py-2" placeholder="<%= t('panel.form.cityPlaceholder') %>"></div>
+        <div><label class="text-sm"><%= t('panel.common.guestNote') %></label><input name="panel_note" maxlength="50" class="mt-1 w-full rounded border px-3 py-2" placeholder="<%= t('panel.common.guestNoteHint') %>"></div>
         <div class="sm:col-span-2"><label class="text-sm"><%= t('panel.form.initialStatus') %></label><select name="status" class="mt-1 w-full rounded border px-3 py-2"><option value="1" selected>1 - <%= t('panel.common.status1') %></option><option value="2">2 - <%= t('panel.common.status2') %></option><option value="3">3 - <%= t('panel.common.status3') %></option></select></div>
         <div class="sm:col-span-2"><button class="rounded bg-indigo-600 text-white px-5 py-2.5 font-semibold"><%= t('panel.common.save') %></button></div>
       </form>

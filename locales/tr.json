@@ -88,6 +88,8 @@
       "name": "Ad Soyad",
       "phone": "Telefon",
       "email": "E-posta",
+      "guestNote": "Not",
+      "guestNoteHint": "En fazla 50 karakter",
       "city": "Şehir",
       "actions": "İşlem",
       "sort": "Sırala"

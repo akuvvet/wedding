@@ -273,6 +273,10 @@ async function ensureGuestRsvpColumns() {
     await pool.query("ALTER TABLE guests ADD COLUMN invite_copied_at TIMESTAMP NULL DEFAULT NULL");
   }
   // Takvim dugmesi (Google / .ics): ilk tiklama, hangi dugmeler, kac kez.
+  // Panel notu: davetli hakkinda kisa ic not (en fazla 50 karakter); davetlinin kendi LCV notundan ayri.
+  if (!names.has("panel_note")) {
+    await pool.query("ALTER TABLE guests ADD COLUMN panel_note VARCHAR(50) DEFAULT NULL");
+  }
   if (!names.has("calendar_at")) {
     await pool.query("ALTER TABLE guests ADD COLUMN calendar_at TIMESTAMP NULL DEFAULT NULL");
   }
@@ -487,20 +491,22 @@ app.post("/", requireEditor, async (req, res) => {
   const email = String(req.body.email || "").trim();
   const city = String(req.body.city || "").trim();
   const status = Number(req.body.status || 2);
+  const panelNote = String(req.body.panel_note || "").trim().slice(0, 50);
   if (!name) return res.render("index", { ok: false, error: req.t("panel.api.nameRequired"), username: req.session.user.username });
   if (![1, 2, 3].includes(status)) return res.render("index", { ok: false, error: req.t("panel.api.invalidStatus"), username: req.session.user.username });
 
   try {
     const userId = await resolveCurrentUserId(req);
     const inviteToken = generateInviteToken();
-    await pool.query("INSERT INTO guests (name, phone, email, city, status, user_id, invite_token) VALUES (?, ?, ?, ?, ?, ?, ?)", [
+    await pool.query("INSERT INTO guests (name, phone, email, city, status, user_id, invite_token, panel_note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [
       name,
       phone || null,
       email || null,
       city || null,
       status,
       userId,
-      inviteToken
+      inviteToken,
+      panelNote || null
     ]);
     res.redirect("/?ok=1");
   } catch (err) {
@@ -624,11 +630,11 @@ app.get("/list", requireLogin, async (req, res) => {
     const admin = isAdmin(req);
     const baseUrl = getPublicBaseUrl(req);
     const guestSql = viewer
-      ? `SELECT g.id, g.name, g.phone, g.email, g.city, g.status, g.user_id, g.invite_token, g.party_size, g.rsvp_note, g.rsvp_at, g.invite_sent_at, g.invite_sent_via, g.invite_opened_at, g.invite_open_count, g.invite_copied_at, g.calendar_at, g.calendar_via, g.calendar_count, u.username AS kullanici
+      ? `SELECT g.id, g.name, g.phone, g.email, g.city, g.status, g.user_id, g.invite_token, g.party_size, g.rsvp_note, g.rsvp_at, g.invite_sent_at, g.invite_sent_via, g.invite_opened_at, g.invite_open_count, g.invite_copied_at, g.calendar_at, g.calendar_via, g.calendar_count, g.panel_note, u.username AS kullanici
          FROM guests g
          LEFT JOIN users u ON u.id = g.user_id
          ORDER BY g.name ASC, g.id ASC`
-      : `SELECT g.id, g.name, g.phone, g.email, g.city, g.status, g.user_id, g.invite_token, g.party_size, g.rsvp_note, g.rsvp_at, g.invite_sent_at, g.invite_sent_via, g.invite_opened_at, g.invite_open_count, g.invite_copied_at, g.calendar_at, g.calendar_via, g.calendar_count, u.username AS kullanici
+      : `SELECT g.id, g.name, g.phone, g.email, g.city, g.status, g.user_id, g.invite_token, g.party_size, g.rsvp_note, g.rsvp_at, g.invite_sent_at, g.invite_sent_via, g.invite_opened_at, g.invite_open_count, g.invite_copied_at, g.calendar_at, g.calendar_via, g.calendar_count, g.panel_note, u.username AS kullanici
          FROM guests g
          LEFT JOIN users u ON u.id = g.user_id
          ORDER BY g.name ASC, g.id ASC`;
@@ -944,6 +950,10 @@ async function handleGuestSave(req, res) {
       ownerId,
       id
     ]);
+    if (Object.prototype.hasOwnProperty.call(req.body, "panel_note")) {
+      const panelNote = String(req.body.panel_note || "").trim().slice(0, 50);
+      await pool.query("UPDATE guests SET panel_note = ? WHERE id = ?", [panelNote || null, id]);
+    }
     const stats = await fetchGuestStats();
     return res.json({ success: true, stats: statsPayload(stats) });
   } catch (err) {

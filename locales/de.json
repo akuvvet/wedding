@@ -88,6 +88,8 @@
       "name": "Name",
       "phone": "Telefon",
       "email": "E-Mail",
+      "guestNote": "Notiz",
+      "guestNoteHint": "Höchstens 50 Zeichen",
       "city": "Stadt",
       "actions": "Aktion",
       "sort": "Sortieren"

@@ -1821,6 +1821,32 @@ tr.guest-row-rsvp-declined:hover {
     overflow-wrap: anywhere;
 }
 
+/* Panel notu (davetli hakkinda kisa ic not) */
+.gl-pnote {
+    display: inline-block;
+    max-width: 100%;
+    margin-top: 0.2rem !important;
+    padding: 0.05rem 0.45rem;
+    border-left: 3px solid #f59e0b;
+    border-radius: 0.25rem;
+    background: #fffbeb;
+    color: #78350f;
+    font-size: 0.78rem;
+    overflow-wrap: anywhere;
+}
+
+.gl-note-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.gl-note-count {
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: #94a3b8;
+}
+
 .gl-contact {
     margin-top: 0.1rem !important;
     font-size: 0.78rem;
