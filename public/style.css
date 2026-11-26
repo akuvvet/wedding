@@ -2248,7 +2248,8 @@ button.gl-track-chip.is-sent.via-both:hover {
 
 .gl-dialog input[type="text"],
 .gl-dialog input[type="tel"],
-.gl-dialog input[type="email"] {
+.gl-dialog input[type="email"],
+.gl-dialog select {
     box-sizing: border-box;
     width: 100%;
     padding: 0.55rem 0.7rem;
@@ -2257,6 +2258,10 @@ button.gl-track-chip.is-sent.via-both:hover {
     font-size: 0.95rem;
     font-weight: 400;
     color: #0f172a;
+}
+
+.gl-dialog select {
+    background: #fff;
 }
 
 .gl-dialog-grid {

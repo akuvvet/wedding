@@ -228,6 +228,9 @@
         <label><%= T('common.city') %><input type="text" name="city" autocomplete="off" list="glCityList"></label>
       </div>
       <label><%= T('common.email') %><input type="email" name="email" autocomplete="off"></label>
+      <% if (adminMode) { %>
+      <label id="glOwnerWrap" hidden><%= T('common.user') %><select name="user_id" id="glOwner"></select></label>
+      <% } %>
       <fieldset>
         <legend><%= T('common.status') %></legend>
         <div class="gl-radio">
@@ -291,6 +294,8 @@
     };
     // Davet mesajinin imzasi: kullanici adi -> [ad, esinin adi, soyadi] ("ve" dile gore cevrilir).
     const SIGNATURES = {"abdullah": ["Abdullah", "Selma", "Kuvvet"], "selma": ["Selma", "Abdullah", "Kuvvet"], "enis": ["Enis", "Zeynep", "Kuvvet"], "zeynep": ["Zeynep", "Enis", "Kuvvet"]};
+    // Admin: Duzenle penceresinde secilebilecek kullanicilar.
+    const OWNERS = <%- safeJson(adminMode && typeof ownerOptions !== "undefined" ? ownerOptions.map((u) => ({ id: Number(u.id), name: String(u.username) })) : []) %>;
     const STATUS_LABEL = { 1: tx('common.status1'), 2: tx('common.status2'), 3: tx('common.status3') };
     const STORE_KEY = 'guestListState.v1' + BASE;
     const $ = (id) => document.getElementById(id);
@@ -773,6 +778,16 @@
       f.elements.status.value = String(g ? g.status : 1);
       $('glEditTitle').textContent = g ? tx('list.editTitle') : tx('list.newTitle');
       $('glAddMoreWrap').hidden = !!g;
+      const ownerSel = $('glOwner');
+      if (ownerSel) {
+        // Yalnizca mevcut kaydi duzenlerken; yeni kayit onu ekleyen kullaniciya ait olur.
+        $('glOwnerWrap').hidden = !g || !OWNERS.length;
+        const opts = [`<option value="">${esc(tx('list.ownerNone'))}</option>`]
+          .concat(OWNERS.map((u) => `<option value="${u.id}">${esc(u.name)}</option>`));
+        if (g && g.uid != null && !OWNERS.some((u) => u.id === g.uid)) opts.push(`<option value="${g.uid}">${esc(g.owner || '#' + g.uid)}</option>`);
+        ownerSel.innerHTML = opts.join('');
+        ownerSel.value = g && g.uid != null ? String(g.uid) : '';
+      }
       $('glEditError').hidden = true;
       if (!dlg.open) dlg.showModal();
       f.elements.name.focus();
@@ -848,17 +863,25 @@
           city: f.elements.city.value.trim(),
           status: Number(f.elements.status.value)
         };
+        const ownerSel = $('glOwner');
+        const ownerChange = ownerSel && !$('glOwnerWrap').hidden ? (ownerSel.value === '' ? null : Number(ownerSel.value)) : undefined;
+        if (ownerChange !== undefined) body.user_id = ownerChange;
         const errEl = $('glEditError');
         if (!body.name) { errEl.textContent = tx('list.nameRequired'); errEl.hidden = false; return; }
         const saveBtn = $('glEditSave');
         saveBtn.disabled = true;
         try {
           await api(`/api/guest/${g.id}`, 'POST', body);
+          delete body.user_id;
           Object.assign(g, body);
+          if (ownerChange !== undefined) {
+            g.uid = ownerChange;
+            g.owner = ownerChange == null ? '' : ((OWNERS.find((u) => u.id === ownerChange) || {}).name || '');
+          }
           g.hasPhone = !!waNumber(g.phone);
           g.hasEmail = String(g.email || '').includes('@');
           // Sunucu sahipsiz kaydi duzenleyen kullaniciya atar.
-          if (g.uid == null && CFG.meId) { g.uid = CFG.meId; g.owner = CFG.meName; }
+          if (ownerChange === undefined && g.uid == null && CFG.meId) { g.uid = CFG.meId; g.owner = CFG.meName; }
           delete g._hay;
           dlg.close();
           refreshAll();

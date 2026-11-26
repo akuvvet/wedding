@@ -57,6 +57,7 @@
         <div class="gl-search">
           <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m10.5 10.5 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
           <input type="search" id="gaSearch" placeholder="<%= T('flow.searchPlaceholder') %>" autocomplete="off" spellcheck="false" aria-label="<%= T('flow.searchAria') %>">
+          <button type="button" class="gl-search-clear" id="gaSearchClear" title="<%= T('flow.searchClear') %>" aria-label="<%= T('flow.searchClear') %>" hidden>&times;</button>
         </div>
         <button type="button" class="gl-btn gl-btn-ghost" id="gaReset" hidden><%= T('common.resetFilters') %></button>
       </div>
@@ -320,6 +321,7 @@
       const conflictCount = conflicts.size;
       $('gaHeadSub').textContent = `${ENTRIES.length} ${tx('flow.entriesWord')} · ${dayCount} ${tx('flow.daysWord')}` + (conflictCount ? ` · ${tx('flow.conflictsNote', { n: conflictCount })}` : '') + (READ_ONLY ? ` · ${tx('flow.readOnlyNote')}` : '');
       $('gaReset').hidden = !isFiltered;
+      $('gaSearchClear').hidden = !st.q;
       persist();
     }
     function setFilter(patch) { Object.assign(st, patch); render(); }
@@ -329,6 +331,10 @@
     const search = $('gaSearch');
     search.value = st.q;
     search.addEventListener('input', () => setFilter({ q: search.value }));
+    const clearSearch = () => { search.value = ''; setFilter({ q: '' }); search.focus(); };
+    $('gaSearchClear').addEventListener('click', clearSearch);
+    // Esc de aramayi temizler.
+    search.addEventListener('keydown', (e) => { if (e.key === 'Escape' && search.value) { e.preventDefault(); clearSearch(); } });
     document.addEventListener('keydown', (e) => {
       if (e.key === '/' && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) { e.preventDefault(); search.focus(); search.select(); }
     });

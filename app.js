@@ -655,7 +655,12 @@ app.get("/list", requireLogin, async (req, res) => {
       "SELECT 1 FROM guests WHERE city IS NULL OR TRIM(city) = '' LIMIT 1"
     );
     const stats = await fetchGuestStats();
+    // Duzenle penceresinde kullanici secimi yalnizca admin icin (izleyiciler kayit sahibi olamaz).
+    const [ownerOptions] = admin
+      ? await pool.query("SELECT id, username FROM users WHERE role <> 'viewer' ORDER BY username ASC")
+      : [[]];
     res.render("list", {
+      ownerOptions,
       guests,
       stats,
       filterUsers,
@@ -913,7 +918,23 @@ async function handleGuestSave(req, res) {
       return res.status(403).json({ success: false, message: req.t("panel.api.noUpdatePermission") });
     }
     const userId = await resolveCurrentUserId(req);
-    const ownerId = guest.user_id != null ? Number(guest.user_id) : userId;
+    let ownerId = guest.user_id != null ? Number(guest.user_id) : userId;
+    // Admin kaydin kullanicisini degistirebilir (bos = atanmamis); diger kullanicilarin gonderdigi deger yok sayilir.
+    if (isAdmin(req) && Object.prototype.hasOwnProperty.call(req.body, "user_id")) {
+      const raw = req.body.user_id;
+      if (raw === null || raw === "") {
+        ownerId = null;
+      } else {
+        const wanted = Number(raw);
+        const [owners] = Number.isInteger(wanted) && wanted > 0
+          ? await pool.query("SELECT id FROM users WHERE id = ? AND role <> 'viewer' LIMIT 1", [wanted])
+          : [[]];
+        if (!owners[0]) {
+          return res.status(422).json({ success: false, message: req.t("panel.api.invalidData") });
+        }
+        ownerId = wanted;
+      }
+    }
     await pool.query("UPDATE guests SET name = ?, phone = ?, email = ?, city = ?, status = ?, user_id = ? WHERE id = ?", [
       name,
       phone || null,
