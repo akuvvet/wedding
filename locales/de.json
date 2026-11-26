@@ -20,7 +20,7 @@
     "guestLabel": "Eingeladene Person",
     "partySizeLabel": "Mit wie vielen Personen kommen Sie insgesamt (Sie selbst eingeschlossen)?",
     "noteLabel": "Notiz (optional)",
-    "notePlaceholder": "Zum Beispiel: vegetarisches Menü, wir kommen mit Kindern",
+    "notePlaceholder": "Zum Beispiel: Wir kommen mit Kindern",
     "submit": "Teilnahme bestätigen",
     "lastUpdate": "Letzte Aktualisierung:",
     "personCount": "{{n}} Personen",

@@ -20,7 +20,7 @@
     "guestLabel": "Invited guest",
     "partySizeLabel": "How many people are coming in total, including yourself?",
     "noteLabel": "Note (optional)",
-    "notePlaceholder": "For example: vegetarian menu, we are coming with children",
+    "notePlaceholder": "For example: we are coming with children",
     "submit": "Confirm attendance",
     "lastUpdate": "Last updated:",
     "personCount": "{{n}} people",
