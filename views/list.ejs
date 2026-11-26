@@ -288,6 +288,8 @@
       meName: <%- safeJson(typeof username !== "undefined" ? String(username) : "") %>,
       capacity: <%= Number(stats.capacity) || 0 %>
     };
+    // Davet mesajinin imzasi: kullanici adi -> [ad, esinin adi, soyadi] ("ve" dile gore cevrilir).
+    const SIGNATURES = {"abdullah": ["Abdullah", "Selma", "Kuvvet"], "selma": ["Selma", "Abdullah", "Kuvvet"], "enis": ["Enis", "Zeynep", "Kuvvet"], "zeynep": ["Zeynep", "Enis", "Kuvvet"]};
     const STATUS_LABEL = { 1: tx('common.status1'), 2: tx('common.status2'), 3: tx('common.status3') };
     const STORE_KEY = 'guestListState.v1' + BASE;
     const $ = (id) => document.getElementById(id);
@@ -457,7 +459,10 @@
       const off = (label) => `<span class="gl-send-btn is-off" title="${esc(tx('list.sendOwnerOnly'))}">${esc(label)}</span>`;
       // Link, mesajla ayni dilde acilsin diye panel dilini tasir.
       // Imza: gonderen panel kullanicisinin adi, bas harfi buyuk.
-      const sender = CFG.meName ? CFG.meName.charAt(0).toUpperCase() + CFG.meName.slice(1) : '';
+      const sig = SIGNATURES[String(CFG.meName || '').toLowerCase()];
+      const sender = sig
+        ? [sig[0], tx('list.signAnd'), sig[1], sig[2]].filter(Boolean).join(' ')
+        : (CFG.meName ? CFG.meName.charAt(0).toUpperCase() + CFG.meName.slice(1) : '');
       const text = tx('list.inviteMessage', { name: g.name, sender, url: `${g.url}?lang=${LOCALE}` });
       // E-posta programlari (or. Outlook) satir sonu olarak CRLF bekler; yalniz LF ile bos satirlar kaybolur.
       const mailText = text.replace(/\r?\n/g, '\r\n');

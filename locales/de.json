@@ -204,6 +204,7 @@
       "exported": "{{n}} Einträge heruntergeladen",
       "inviteMessage": "Hallo {{name}},\n\nWir feiern Hochzeit und freuen uns, Euch zu unseren Hochzeitsgästen zählen zu dürfen.\n\nBitte teilt uns über den folgenden Link verbindlich mit, ob Ihr dabei sein könnt.\n\nHerzliche Grüße\n{{sender}}\n\n{{url}}",
       "inviteSubject": "Einladung zur Hochzeit",
+      "signAnd": "und",
       "sendWhatsappTitle": "Einladungslink per WhatsApp senden",
       "sendEmailTitle": "Einladungslink per E-Mail senden",
       "sendOwnerOnly": "Angabe vorhanden. Senden kann nur, wer den Eintrag verwaltet, oder ein Admin.",

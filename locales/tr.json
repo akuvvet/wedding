@@ -204,6 +204,7 @@
       "exported": "{{n}} kayıt indirildi",
       "inviteMessage": "Merhaba {{name}},\n\nSiz dostlarımızı bu önemli günümüzde yanımızda görmekten kıvanç duyacağız.\n\nKatılıp katılamayacağınızı aşağıdaki bağlantıdan kesin olarak bildirmenizi rica ederiz.\n\nHürmetler\n{{sender}}\n\n{{url}}",
       "inviteSubject": "Düğün davetiyesi",
+      "signAnd": "ve",
       "sendWhatsappTitle": "Davet linkini WhatsApp ile gönder",
       "sendEmailTitle": "Davet linkini e-posta ile gönder",
       "sendOwnerOnly": "Bilgi kayıtlı. Yalnızca kaydın sahibi veya admin gönderebilir.",

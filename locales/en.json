@@ -204,6 +204,7 @@
       "exported": "{{n}} entries downloaded",
       "inviteMessage": "Hello {{name}},\n\nWe are getting married and would be delighted to count you among our wedding guests.\n\nPlease let us know for certain via the link below whether you will be able to attend.\n\nKind regards\n{{sender}}\n\n{{url}}",
       "inviteSubject": "Wedding invitation",
+      "signAnd": "and",
       "sendWhatsappTitle": "Send the invitation link by WhatsApp",
       "sendEmailTitle": "Send the invitation link by email",
       "sendOwnerOnly": "On file. Only the record's owner or an admin can send.",
