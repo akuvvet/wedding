@@ -36,6 +36,7 @@
         rsvpAt: g.rsvp_at || null,
         note: g.rsvp_note || "",
         pnote: g.panel_note || "",
+        maxParty: g.max_party == null ? null : Number(g.max_party),
         sentAt: g.invite_sent_at || null,
         sentVia: g.invite_sent_via || "",
         openedAt: g.invite_opened_at || null,
@@ -230,6 +231,10 @@
       </div>
       <label><%= T('common.email') %><input type="email" name="email" autocomplete="off"></label>
       <label><span class="gl-note-head"><%= T('common.guestNote') %><small class="gl-note-count" id="glNoteCount">0/50</small></span><input type="text" name="panel_note" maxlength="50" autocomplete="off" placeholder="<%= T('common.guestNoteHint') %>"></label>
+      <label><%= T('list.maxParty') %><select name="max_party">
+        <option value=""><%= T('list.maxPartyNone') %></option>
+        <% for (let n = 1; n <= 5; n += 1) { %><option value="<%= n %>"><%= n %></option><% } %>
+      </select></label>
       <% if (adminMode) { %>
       <label id="glOwnerWrap" hidden><%= T('common.user') %><select name="user_id" id="glOwner"></select></label>
       <% } %>
@@ -537,7 +542,8 @@
           ? `<span class="gl-badge s3"${title}>${esc(tx('list.rsvpNo'))}</span>`
           : `<span class="gl-badge wait">${esc(tx('list.rsvpWait'))}</span>`;
       const note = g.note ? `<p class="gl-note" title="${esc(g.note)}">${esc(g.note)}</p>` : '';
-      return badge + note;
+      const limit = g.maxParty ? `<p class="gl-maxparty">${esc(tx('list.maxPartyBadge', { n: g.maxParty }))}</p>` : '';
+      return badge + limit + note;
     }
     // Davet takibi: "gonderildi" (dugmeye basilinca ya da elle) ve "acildi" (davetli sayfayi acinca).
     function trackHtml(g) {
@@ -783,6 +789,7 @@
       f.elements.email.value = g ? g.email : '';
       f.elements.city.value = g ? g.city : '';
       f.elements.panel_note.value = g ? g.pnote : '';
+      f.elements.max_party.value = g && g.maxParty ? String(g.maxParty) : '';
       updateNoteCount();
       f.elements.status.value = String(g ? g.status : 1);
       $('glEditTitle').textContent = g ? tx('list.editTitle') : tx('list.newTitle');
@@ -841,6 +848,7 @@
             email: f.elements.email.value.trim(),
             city: f.elements.city.value.trim(),
             panel_note: f.elements.panel_note.value.trim().slice(0, 50),
+            max_party: f.elements.max_party.value,
             status: Number(f.elements.status.value)
           };
           const errEl = $('glEditError');
@@ -872,6 +880,7 @@
           email: f.elements.email.value.trim(),
           city: f.elements.city.value.trim(),
           panel_note: f.elements.panel_note.value.trim().slice(0, 50),
+          max_party: f.elements.max_party.value,
           status: Number(f.elements.status.value)
         };
         const ownerSel = $('glOwner');
@@ -886,6 +895,7 @@
           delete body.user_id;
           Object.assign(g, body);
           g.pnote = body.panel_note || '';
+          g.maxParty = body.max_party ? Number(body.max_party) : null;
           if (ownerChange !== undefined) {
             g.uid = ownerChange;
             g.owner = ownerChange == null ? '' : ((OWNERS.find((u) => u.id === ownerChange) || {}).name || '');

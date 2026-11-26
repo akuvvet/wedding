@@ -131,6 +131,13 @@ function generateInviteToken() {
   return crypto.randomBytes(24).toString("hex");
 }
 
+// "En fazla kisi": bos / null = sinir yok (5'e kadar), aksi halde 1-5. Gecersizse undefined.
+function parseMaxParty(raw) {
+  if (raw === undefined || raw === null || raw === "") return null;
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 1 && n <= 5 ? n : undefined;
+}
+
 function getPublicBaseUrl(req) {
   const envBase = String(process.env.PUBLIC_BASE_URL || "").trim().replace(/\/$/, "");
   if (envBase) return envBase;
@@ -276,6 +283,10 @@ async function ensureGuestRsvpColumns() {
   // Panel notu: davetli hakkinda kisa ic not (en fazla 50 karakter); davetlinin kendi LCV notundan ayri.
   if (!names.has("panel_note")) {
     await pool.query("ALTER TABLE guests ADD COLUMN panel_note VARCHAR(50) DEFAULT NULL");
+  }
+  // Davetli basina en fazla kisi (bos = 5'e kadar).
+  if (!names.has("max_party")) {
+    await pool.query("ALTER TABLE guests ADD COLUMN max_party TINYINT UNSIGNED DEFAULT NULL");
   }
   if (!names.has("calendar_at")) {
     await pool.query("ALTER TABLE guests ADD COLUMN calendar_at TIMESTAMP NULL DEFAULT NULL");
@@ -492,13 +503,14 @@ app.post("/", requireEditor, async (req, res) => {
   const city = String(req.body.city || "").trim();
   const status = Number(req.body.status || 2);
   const panelNote = String(req.body.panel_note || "").trim().slice(0, 50);
+  const maxParty = parseMaxParty(req.body.max_party) ?? null;
   if (!name) return res.render("index", { ok: false, error: req.t("panel.api.nameRequired"), username: req.session.user.username });
   if (![1, 2, 3].includes(status)) return res.render("index", { ok: false, error: req.t("panel.api.invalidStatus"), username: req.session.user.username });
 
   try {
     const userId = await resolveCurrentUserId(req);
     const inviteToken = generateInviteToken();
-    await pool.query("INSERT INTO guests (name, phone, email, city, status, user_id, invite_token, panel_note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [
+    await pool.query("INSERT INTO guests (name, phone, email, city, status, user_id, invite_token, panel_note, max_party) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", [
       name,
       phone || null,
       email || null,
@@ -506,7 +518,8 @@ app.post("/", requireEditor, async (req, res) => {
       status,
       userId,
       inviteToken,
-      panelNote || null
+      panelNote || null,
+      maxParty
     ]);
     res.redirect("/?ok=1");
   } catch (err) {
@@ -630,11 +643,11 @@ app.get("/list", requireLogin, async (req, res) => {
     const admin = isAdmin(req);
     const baseUrl = getPublicBaseUrl(req);
     const guestSql = viewer
-      ? `SELECT g.id, g.name, g.phone, g.email, g.city, g.status, g.user_id, g.invite_token, g.party_size, g.rsvp_note, g.rsvp_at, g.invite_sent_at, g.invite_sent_via, g.invite_opened_at, g.invite_open_count, g.invite_copied_at, g.calendar_at, g.calendar_via, g.calendar_count, g.panel_note, u.username AS kullanici
+      ? `SELECT g.id, g.name, g.phone, g.email, g.city, g.status, g.user_id, g.invite_token, g.party_size, g.rsvp_note, g.rsvp_at, g.invite_sent_at, g.invite_sent_via, g.invite_opened_at, g.invite_open_count, g.invite_copied_at, g.calendar_at, g.calendar_via, g.calendar_count, g.panel_note, g.max_party, u.username AS kullanici
          FROM guests g
          LEFT JOIN users u ON u.id = g.user_id
          ORDER BY g.name ASC, g.id ASC`
-      : `SELECT g.id, g.name, g.phone, g.email, g.city, g.status, g.user_id, g.invite_token, g.party_size, g.rsvp_note, g.rsvp_at, g.invite_sent_at, g.invite_sent_via, g.invite_opened_at, g.invite_open_count, g.invite_copied_at, g.calendar_at, g.calendar_via, g.calendar_count, g.panel_note, u.username AS kullanici
+      : `SELECT g.id, g.name, g.phone, g.email, g.city, g.status, g.user_id, g.invite_token, g.party_size, g.rsvp_note, g.rsvp_at, g.invite_sent_at, g.invite_sent_via, g.invite_opened_at, g.invite_open_count, g.invite_copied_at, g.calendar_at, g.calendar_via, g.calendar_count, g.panel_note, g.max_party, u.username AS kullanici
          FROM guests g
          LEFT JOIN users u ON u.id = g.user_id
          ORDER BY g.name ASC, g.id ASC`;
@@ -689,7 +702,7 @@ app.get("/davet/:token", guestLocaleMiddleware, async (req, res) => {
   if (!token) return res.status(404).send(req.t("errors.inviteNotFound"));
   try {
     const [rows] = await pool.query(
-      "SELECT id, name, party_size, rsvp_note, rsvp_at, status FROM guests WHERE invite_token = ? LIMIT 1",
+      "SELECT id, name, party_size, rsvp_note, rsvp_at, status, max_party FROM guests WHERE invite_token = ? LIMIT 1",
       [token]
     );
     const guest = rows[0];
@@ -759,10 +772,14 @@ app.post("/api/rsvp/:token", guestLocaleMiddleware, async (req, res) => {
   }
 
   try {
-    const [tokenRows] = await pool.query("SELECT id, name FROM guests WHERE invite_token = ? LIMIT 1", [token]);
+    const [tokenRows] = await pool.query("SELECT id, name, max_party FROM guests WHERE invite_token = ? LIMIT 1", [token]);
     const selectedGuest = tokenRows[0];
     if (!selectedGuest) {
       return res.status(404).json({ success: false, message: req.t("api.inviteNotFound") });
+    }
+    const guestMax = Number(selectedGuest.max_party || 0);
+    if (!notAttending && guestMax && partySize > guestMax) {
+      return res.status(422).json({ success: false, message: req.t("api.partySizeMax", { n: guestMax }) });
     }
     if (guestId && Number(selectedGuest.id) !== guestId) {
       return res.status(422).json({ success: false, message: req.t("api.invalidGuestRecord") });
@@ -909,7 +926,9 @@ async function handleGuestSave(req, res) {
   const email = String(req.body.email || "").trim();
   const city = String(req.body.city || "").trim();
   const status = Number(req.body.status || 0);
-  if (!id || !name || ![1, 2, 3].includes(status)) {
+  const hasMaxParty = Object.prototype.hasOwnProperty.call(req.body, "max_party");
+  const maxParty = hasMaxParty ? parseMaxParty(req.body.max_party) : null;
+  if (!id || !name || ![1, 2, 3].includes(status) || maxParty === undefined) {
     return res.status(422).json({ success: false, message: req.t("panel.api.invalidData") });
   }
 
@@ -953,6 +972,9 @@ async function handleGuestSave(req, res) {
     if (Object.prototype.hasOwnProperty.call(req.body, "panel_note")) {
       const panelNote = String(req.body.panel_note || "").trim().slice(0, 50);
       await pool.query("UPDATE guests SET panel_note = ? WHERE id = ?", [panelNote || null, id]);
+    }
+    if (hasMaxParty) {
+      await pool.query("UPDATE guests SET max_party = ? WHERE id = ?", [maxParty, id]);
     }
     const stats = await fetchGuestStats();
     return res.json({ success: true, stats: statsPayload(stats) });

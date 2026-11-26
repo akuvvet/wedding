@@ -101,9 +101,13 @@
             </div>
           </fieldset>
 
+          <% const maxParty = Math.min(5, Number(guest.max_party || 0) || 5); %>
           <div id="partySizeWrap" class="rsvp-field" hidden>
-            <label for="partySize" class="rsvp-question"><%= t('rsvp.partySizeLabel') %></label>
-            <select id="partySize" name="party_size" class="rsvp-input"></select>
+            <% if (maxParty === 1) { %>
+            <p class="rsvp-single-invite"><%= t('rsvp.singleInvite') %></p>
+            <% } %>
+            <label for="partySize" class="rsvp-question"<%= maxParty === 1 ? ' hidden' : '' %>><%= t('rsvp.partySizeLabel') %></label>
+            <select id="partySize" name="party_size" class="rsvp-input"<%= maxParty === 1 ? ' hidden' : '' %>></select>
           </div>
 
           <div class="rsvp-field">
@@ -146,7 +150,8 @@
   const WEDDING_CALENDAR = <%- JSON.stringify(calendar) %>;
   const SHOW_CALENDAR_INIT = <%= showCalendar ? 'true' : 'false' %>;
   const I18N = <%- JSON.stringify(i18n.rsvp) %>;
-  const MAX_PARTY_SIZE = 5;
+  // Davetliye ozel ust sinir (panelde "En fazla kisi"); yoksa 5.
+  const MAX_PARTY_SIZE = <%= Math.min(5, Number(guest.max_party || 0) || 5) %>;
   const guestIdInput = document.getElementById('guestId');
   const choiceInputs = Array.from(document.querySelectorAll('input[name="attendance"]'));
   const partySizeWrap = document.getElementById('partySizeWrap');
@@ -188,7 +193,7 @@
       opt.textContent = i === 1 ? I18N.personCountOne : I18N.personCount.replace('{{n}}', String(i));
       partySizeSelect.appendChild(opt);
     }
-    partySizeSelect.value = selectedValue >= 1 && selectedValue <= MAX_PARTY_SIZE ? String(selectedValue) : '';
+    partySizeSelect.value = MAX_PARTY_SIZE === 1 ? '1' : (selectedValue >= 1 && selectedValue <= MAX_PARTY_SIZE ? String(selectedValue) : '');
   }
 
   // 'yes' | 'no' | '' (henuz secilmedi)

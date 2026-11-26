@@ -233,6 +233,18 @@ tr.guest-row-editing {
     }
 }
 
+/* Tek kisilik davetiye: kisi sayisi secimi yerine bilgi satiri */
+.rsvp-single-invite {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d9cab8;
+    border-radius: 0.75rem;
+    background: #faf7f3;
+    color: #4a443c;
+    font-size: 0.95rem;
+    text-align: center;
+}
+
 .rsvp-card {
     overflow: hidden;
     border-radius: 1.25rem;
@@ -1819,6 +1831,14 @@ tr.guest-row-rsvp-declined:hover {
 .gl-name {
     font-weight: 600;
     overflow-wrap: anywhere;
+}
+
+/* Davetliye ozel kisi siniri */
+.gl-maxparty {
+    margin-top: 0.2rem !important;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #7c3aed;
 }
 
 /* Panel notu (davetli hakkinda kisa ic not) */
