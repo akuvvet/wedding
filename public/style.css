@@ -3121,11 +3121,60 @@ button.gl-track-chip.is-sent.via-both:hover {
     text-align: center;
 }
 
-.rsvp-party.is-prompt .rsvp-party-options {
-    animation: rsvp-party-prompt 1.4s ease-out;
+/* "Evet"ten sonra kisi sayisi pencere olarak acilir. */
+.rsvp-party-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(44, 38, 32, 0.62);
 }
 
-@keyframes rsvp-party-prompt {
-    0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.6); }
-    100% { box-shadow: 0 0 0 16px rgba(212, 175, 55, 0); }
+.rsvp-party-close {
+    display: none;
+    border: 0;
+    background: none;
+    color: #5c5246;
+    cursor: pointer;
+    font: inherit;
+}
+
+.rsvp-party.is-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    margin: auto;
+    box-sizing: border-box;
+    width: min(26rem, calc(100% - 2rem));
+    height: fit-content;
+    max-height: calc(100% - 2rem);
+    overflow-y: auto;
+    padding: 1.6rem 1.25rem 1.35rem;
+    border-radius: 0.8rem;
+    border: 1.5px solid #b08d4f;
+    background: linear-gradient(135deg, #fff6dc 0%, #f4e4c0 100%);
+    box-shadow: 0 0 0 4px rgba(176, 141, 79, 0.2), 0 24px 60px rgba(0, 0, 0, 0.45);
+    animation: rsvp-thanks-in 0.35s ease-out;
+}
+
+.rsvp-party.is-modal .rsvp-party-close {
+    display: block;
+    position: absolute;
+    top: 0.3rem;
+    right: 0.5rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.rsvp-party.is-modal .rsvp-question {
+    padding-right: 1.5rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #2a2622;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rsvp-party.is-modal {
+        animation: none;
+    }
 }

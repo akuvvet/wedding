@@ -102,7 +102,9 @@
           </fieldset>
 
           <% const maxParty = Math.min(5, Number(guest.max_party || 0) || 5); %>
+          <div id="partyBackdrop" class="rsvp-party-backdrop" hidden></div>
           <div id="partySizeWrap" class="rsvp-field rsvp-party" hidden>
+            <button type="button" id="partyClose" class="rsvp-party-close" aria-label="<%= t('rsvp.calendarLater') %>">&times;</button>
             <% if (maxParty === 1) { %>
             <p class="rsvp-single-invite"><%= t('rsvp.singleInvite') %></p>
             <% } %>
@@ -156,6 +158,7 @@
   const choiceInputs = Array.from(document.querySelectorAll('input[name="attendance"]'));
   const partySizeWrap = document.getElementById('partySizeWrap');
   const partySizeOptions = document.getElementById('partySizeOptions');
+  const partyBackdrop = document.getElementById('partyBackdrop');
   const selectedGuestName = document.getElementById('selectedGuestName');
   const rsvpForm = document.getElementById('rsvpForm');
   const rsvpError = document.getElementById('rsvpError');
@@ -194,6 +197,7 @@
       input.checked = MAX_PARTY_SIZE === 1 || i === selectedValue;
       input.addEventListener('click', () => {
         clearMessages();
+        closePartyModal();
         saveRsvp('yes', i);
       });
       const text = document.createElement('span');
@@ -253,6 +257,7 @@
   function applyChoice() {
     const choice = currentChoice();
     partySizeWrap.hidden = choice !== 'yes';
+    if (partySizeWrap.hidden) closePartyModal();
     if (calendarSuggest) {
       calendarSuggest.hidden = !(choice === 'yes' && attendanceSaved);
       if (calendarSuggest.hidden) closeCalendarModal();
@@ -343,6 +348,21 @@
     }
   }
 
+  // Kisi sayisi penceresi: kapatilirsa dugmeler formda kalir.
+  function openPartyModal() {
+    partySizeWrap.classList.add('is-modal');
+    partyBackdrop.hidden = false;
+    const target = partySizeOptions.querySelector('input:checked') || partySizeOptions.querySelector('input');
+    if (target) target.focus({ preventScroll: true });
+  }
+  function closePartyModal() {
+    partySizeWrap.classList.remove('is-modal');
+    partyBackdrop.hidden = true;
+  }
+  partyBackdrop.addEventListener('click', closePartyModal);
+  document.getElementById('partyClose').addEventListener('click', closePartyModal);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePartyModal(); });
+
   choiceInputs.forEach((input) => input.addEventListener('click', () => {
     clearMessages();
     applyChoice();
@@ -354,13 +374,8 @@
       saveRsvp('yes', 1);
       return;
     }
-    // Kisi sayisi alani hemen one cikar; sayi secilince katilim kaydedilir.
-    partySizeWrap.classList.remove('is-prompt');
-    void partySizeWrap.offsetWidth;
-    partySizeWrap.classList.add('is-prompt');
-    partySizeWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    const target = partySizeOptions.querySelector('input:checked') || partySizeOptions.querySelector('input');
-    if (target) target.focus({ preventScroll: true });
+    // Kisi sayisi pencere olarak acilir; sayi secilince katilim kaydedilir.
+    openPartyModal();
   }));
 
   rsvpForm.addEventListener('submit', (e) => {
