@@ -102,12 +102,12 @@
           </fieldset>
 
           <% const maxParty = Math.min(5, Number(guest.max_party || 0) || 5); %>
-          <div id="partySizeWrap" class="rsvp-field" hidden>
+          <div id="partySizeWrap" class="rsvp-field rsvp-party" hidden>
             <% if (maxParty === 1) { %>
             <p class="rsvp-single-invite"><%= t('rsvp.singleInvite') %></p>
             <% } %>
-            <label for="partySize" class="rsvp-question"<%= maxParty === 1 ? ' hidden' : '' %>><%= t('rsvp.partySizeLabel') %></label>
-            <select id="partySize" name="party_size" class="rsvp-input"<%= maxParty === 1 ? ' hidden' : '' %>></select>
+            <p id="partySizeLabel" class="rsvp-question"<%= maxParty === 1 ? ' hidden' : '' %>><%= t('rsvp.partySizeLabel') %></p>
+            <div id="partySizeOptions" class="rsvp-party-options" role="radiogroup" aria-labelledby="partySizeLabel"<%= maxParty === 1 ? ' hidden' : '' %>></div>
           </div>
 
           <div class="rsvp-field">
@@ -155,7 +155,7 @@
   const guestIdInput = document.getElementById('guestId');
   const choiceInputs = Array.from(document.querySelectorAll('input[name="attendance"]'));
   const partySizeWrap = document.getElementById('partySizeWrap');
-  const partySizeSelect = document.getElementById('partySize');
+  const partySizeOptions = document.getElementById('partySizeOptions');
   const selectedGuestName = document.getElementById('selectedGuestName');
   const rsvpForm = document.getElementById('rsvpForm');
   const rsvpError = document.getElementById('rsvpError');
@@ -180,20 +180,33 @@
     googleCalendarBtn.href = googleCalendarUrl();
   }
 
-  // Kisi sayisi bos ("Seciniz") baslar; davetli bilerek secer.
+  // Kisi sayisi dugmeleri: bir sayiya basildigi anda katilim kaydedilir.
   function buildPartySizeOptions(selectedValue) {
-    partySizeSelect.replaceChildren();
-    const empty = document.createElement('option');
-    empty.value = '';
-    empty.textContent = I18N.partySizeSelect;
-    partySizeSelect.appendChild(empty);
+    partySizeOptions.replaceChildren();
     for (let i = 1; i <= MAX_PARTY_SIZE; i += 1) {
-      const opt = document.createElement('option');
-      opt.value = String(i);
-      opt.textContent = i === 1 ? I18N.personCountOne : I18N.personCount.replace('{{n}}', String(i));
-      partySizeSelect.appendChild(opt);
+      const label = document.createElement('label');
+      label.className = 'rsvp-choice-option rsvp-party-option';
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'party_size';
+      input.value = String(i);
+      input.className = 'rsvp-choice-input';
+      input.checked = MAX_PARTY_SIZE === 1 || i === selectedValue;
+      input.addEventListener('click', () => {
+        clearMessages();
+        saveRsvp('yes', i);
+      });
+      const text = document.createElement('span');
+      text.className = 'rsvp-choice-text';
+      text.textContent = i === 1 ? I18N.personCountOne : I18N.personCount.replace('{{n}}', String(i));
+      label.append(input, text);
+      partySizeOptions.appendChild(label);
     }
-    partySizeSelect.value = MAX_PARTY_SIZE === 1 ? '1' : (selectedValue >= 1 && selectedValue <= MAX_PARTY_SIZE ? String(selectedValue) : '');
+  }
+
+  function selectedPartySize() {
+    const checked = partySizeOptions.querySelector('input:checked');
+    return checked ? Number(checked.value) : 0;
   }
 
   // 'yes' | 'no' | '' (henuz secilmedi)
@@ -281,29 +294,15 @@
     setChoice('');
   }
 
-  choiceInputs.forEach((input) => input.addEventListener('change', () => {
-    clearMessages();
-    applyChoice();
-  }));
-  partySizeSelect.addEventListener('change', clearMessages);
-
-  rsvpForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    clearMessages();
-    const choice = currentChoice();
-    if (!choice) {
-      showError(I18N.chooseFirst);
-      return;
-    }
+  // Kaydetme: "Katilamayacagim" secilince ya da kisi sayisina basilinca hemen calisir;
+  // alttaki dugme yalnizca not degisikligi icin yeniden kaydeder.
+  let saving = false;
+  async function saveRsvp(choice, partySize) {
+    if (saving) return;
     const decline = choice === 'no';
-    const partySize = decline ? 0 : Number(partySizeSelect.value || 0);
-    if (!decline && !partySize) {
-      showError(I18N.choosePartySize);
-      partySizeSelect.focus();
-      return;
-    }
     const guestId = Number(guestIdInput.value || INITIAL_GUEST.id);
     const note = document.getElementById('rsvpNote').value.trim();
+    saving = true;
     submitBtn.disabled = true;
     submitBtn.textContent = I18N.saving;
     try {
@@ -313,7 +312,7 @@
         body: JSON.stringify({
           guest_id: guestId,
           name: INITIAL_GUEST.name,
-          party_size: partySize,
+          party_size: decline ? 0 : partySize,
           not_attending: decline,
           note
         })
@@ -338,9 +337,48 @@
     } catch (err) {
       showError(I18N.connectionError);
     } finally {
+      saving = false;
       submitBtn.disabled = false;
       applyChoice();
     }
+  }
+
+  choiceInputs.forEach((input) => input.addEventListener('click', () => {
+    clearMessages();
+    applyChoice();
+    if (input.value === 'no') {
+      saveRsvp('no', 0);
+      return;
+    }
+    if (MAX_PARTY_SIZE === 1) {
+      saveRsvp('yes', 1);
+      return;
+    }
+    // Kisi sayisi alani hemen one cikar; sayi secilince katilim kaydedilir.
+    partySizeWrap.classList.remove('is-prompt');
+    void partySizeWrap.offsetWidth;
+    partySizeWrap.classList.add('is-prompt');
+    partySizeWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const target = partySizeOptions.querySelector('input:checked') || partySizeOptions.querySelector('input');
+    if (target) target.focus({ preventScroll: true });
+  }));
+
+  rsvpForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    clearMessages();
+    const choice = currentChoice();
+    if (!choice) {
+      showError(I18N.chooseFirst);
+      return;
+    }
+    const partySize = choice === 'no' ? 0 : selectedPartySize();
+    if (choice === 'yes' && !partySize) {
+      showError(I18N.choosePartySize);
+      const first = partySizeOptions.querySelector('input');
+      if (first) first.focus();
+      return;
+    }
+    saveRsvp(choice, partySize);
   });
   </script>
 </body>
